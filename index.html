@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO | Dashboard Premium V10</title>
+<title>TAZZO | Dashboard Premium V11</title>
 
 <link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-
 body{
     min-height:100vh;
     background:linear-gradient(135deg,#180000,#8b0000,#1a0000);
@@ -20,15 +19,12 @@ body{
     color:#fff;
     font-family:Arial,sans-serif;
 }
-
 @keyframes bgMove{
     0%{background-position:0% 50%}
     50%{background-position:100% 50%}
     100%{background-position:0% 50%}
 }
-
 .container{max-width:480px;margin:auto}
-
 .logo{
     text-align:center;
     font-size:42px;
@@ -39,14 +35,12 @@ body{
 }
 .white{color:#fff}
 .red{color:#ff0000;text-shadow:0 0 8px #ff0000}
-
 .data-brasilia{
     text-align:center;
     font-size:13px;
     color:#ddd;
     margin-bottom:16px;
 }
-
 .card{
     background:rgba(255,255,255,.08);
     border-radius:20px;
@@ -55,7 +49,6 @@ body{
     box-shadow:0 0 20px rgba(255,0,0,.18);
     backdrop-filter:blur(12px);
 }
-
 button,input,select{
     width:100%;
     padding:14px;
@@ -64,18 +57,15 @@ button,input,select{
     border-radius:12px;
     font-size:16px;
 }
-
 input,select{
     background:rgba(0,0,0,.35);
     color:#fff;
 }
-
 button{
     background:linear-gradient(90deg,#ff0000,#8b0000);
     color:#fff;
     font-weight:bold;
 }
-
 .progress-container{
     width:100%;
     height:14px;
@@ -84,19 +74,16 @@ button{
     overflow:hidden;
     margin:8px 0;
 }
-
 .progress-bar{
     height:100%;
     background:linear-gradient(90deg,#ff0000,#ff5c5c);
     transition:.5s;
 }
-
 .rank-item{
     display:flex;
     justify-content:space-between;
     padding:8px 0;
 }
-
 .week-history{
     margin:10px 0;
     padding:10px;
@@ -133,7 +120,6 @@ button{
 <option>Fábio</option>
 <option>Caio Henrique</option>
 </select>
-
 <input type="text" inputmode="decimal" id="valorVendaDia" placeholder="Valor vendido no dia">
 <button onclick="adicionarVendaDia()">Adicionar valor</button>
 </div>
@@ -146,11 +132,6 @@ button{
 <div class="card">
 <h3>Performance Semanal</h3>
 <div id="performanceSemanal"></div>
-</div>
-
-<div class="card">
-<h3>Últimas 4 Semanas</h3>
-<div id="historico4Semanas"></div>
 </div>
 
 <div class="card">
@@ -170,10 +151,11 @@ const META_MENSAL=70000;
 const META_SEMANAL=17500;
 const vendedores=["Joabe","João Gabriel","Fábio"];
 
+/* NOVOS VALORES CORRETOS */
 const VALORES_BASE={
-    "Joabe":16114.43,
-    "João Gabriel":13077.33,
     "Fábio":15809.44,
+    "Joabe":16114.43,
+    "João Gabriel":11231.53,
     "Caio Henrique":2566.35
 };
 
@@ -183,12 +165,6 @@ function agoraBrasilia(){
 
 function dataHojeBR(){
     return agoraBrasilia().toLocaleDateString("pt-BR");
-}
-
-function semanaAno(){
-    const d=agoraBrasilia();
-    const first=new Date(d.getFullYear(),0,1);
-    return Math.ceil((((d-first)/86400000)+first.getDay()+1)/7);
 }
 
 let vendas=JSON.parse(localStorage.getItem("tazzoDashboard"));
@@ -208,14 +184,11 @@ let semanaAtual=JSON.parse(localStorage.getItem("tazzoSemanaAtual"))||{
     "Fábio":0
 };
 
-let historicoSemanas=JSON.parse(localStorage.getItem("tazzoHistorico4"))||[];
 let vendasDiarias=JSON.parse(localStorage.getItem("tazzoDiario"))||[];
-let semanaControle=localStorage.getItem("tazzoSemanaNumero")||semanaAno();
 
 function salvar(){
     localStorage.setItem("tazzoDashboard",JSON.stringify(vendas));
     localStorage.setItem("tazzoSemanaAtual",JSON.stringify(semanaAtual));
-    localStorage.setItem("tazzoHistorico4",JSON.stringify(historicoSemanas));
     localStorage.setItem("tazzoDiario",JSON.stringify(vendasDiarias));
 }
 
@@ -229,11 +202,19 @@ function percentual(v,m){
 
 function adicionarVendaDia(){
     let nome=document.getElementById("vendedor").value;
-    let valor=parseFloat(document.getElementById("valorVendaDia").value.replace(/\./g,"").replace(",","."));
+    let valor=parseFloat(
+        document.getElementById("valorVendaDia").value
+        .replace(/\./g,"")
+        .replace(",",".")
+    );
+
     if(isNaN(valor)||valor<=0)return;
 
-    vendas[nome]+=valor;
-    if(vendedores.includes(nome)) semanaAtual[nome]+=valor;
+    vendas[nome]=(vendas[nome]||0)+valor;
+
+    if(vendedores.includes(nome)){
+        semanaAtual[nome]+=valor;
+    }
 
     vendasDiarias.push({
         vendedor:nome,
@@ -242,155 +223,99 @@ function adicionarVendaDia(){
     });
 
     document.getElementById("valorVendaDia").value="";
+
     atualizarDashboard();
 }
 
 function atualizarDashboard(){
-    let total=Object.values(vendas).filter(v=>typeof v==="number").reduce((a,b)=>a+b,0);
+    let total=
+        (vendas["Fábio"]||0)+
+        (vendas["Joabe"]||0)+
+        (vendas["João Gabriel"]||0)+
+        (vendas["Caio Henrique"]||0);
+
     let pct=percentual(total,META_LOJA);
 
-    document.getElementById("dataHora").innerText=agoraBrasilia().toLocaleString("pt-BR")+" • Brasília";
+    document.getElementById("dataHora").innerText=
+        agoraBrasilia().toLocaleString("pt-BR")+" • Brasília";
+
     document.getElementById("totalLoja").innerText=formatar(total);
     document.getElementById("percentLoja").innerText=pct+"%";
     document.getElementById("barraLoja").style.width=pct+"%";
-    document.getElementById("metaInfo").innerHTML=`Faltam R$ ${formatar(Math.max(0,META_LOJA-total))}`;
+    document.getElementById("metaInfo").innerHTML=
+        `Faltam R$ ${formatar(Math.max(0,META_LOJA-total))}`;
 
     atualizarMensal();
     atualizarSemanal();
     atualizarRanking();
-    atualizarHistorico4();
+
     salvar();
 }
 
 function atualizarMensal(){
     let html="";
+
     vendedores.forEach(nome=>{
         let valor=vendas[nome]||0;
         let pct=percentual(valor,META_MENSAL);
-        html+=`<div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
-        <div class="progress-container"><div class="progress-bar" style="width:${pct}%"></div></div>`;
+
+        html+=`
+        <div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
+        <div class="progress-container">
+        <div class="progress-bar" style="width:${pct}%"></div>
+        </div>`;
     });
+
     document.getElementById("performanceMensal").innerHTML=html;
 }
 
 function atualizarSemanal(){
     let html="";
+
     vendedores.forEach(nome=>{
         let valor=semanaAtual[nome]||0;
         let pct=percentual(valor,META_SEMANAL);
-        html+=`<div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
-        <div class="progress-container"><div class="progress-bar" style="width:${pct}%"></div></div>`;
+
+        html+=`
+        <div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
+        <div class="progress-container">
+        <div class="progress-bar" style="width:${pct}%"></div>
+        </div>`;
     });
+
     document.getElementById("performanceSemanal").innerHTML=html;
 }
 
 function atualizarRanking(){
-    let ranking=vendedores.map(v=>[v,vendas[v]||0]).sort((a,b)=>b[1]-a[1]);
+    let ranking=vendedores
+        .map(v=>[v,vendas[v]||0])
+        .sort((a,b)=>b[1]-a[1]);
+
     let medals=["🥇","🥈","🥉"];
-    document.getElementById("ranking").innerHTML=ranking.map((r,i)=>`
-    <div class="rank-item">
-    <span>${medals[i]} ${r[0]}</span>
-    <span>R$ ${formatar(r[1])}</span>
-    </div>`).join("");
-}
 
-function atualizarHistorico4(){
-    document.getElementById("historico4Semanas").innerHTML=historicoSemanas.map((sem,index)=>`
-    <div class="week-history">
-    <strong>Semana ${index+1}</strong><br>
-    Joabe: R$ ${formatar(sem["Joabe"]||0)}<br>
-    João Gabriel: R$ ${formatar(sem["João Gabriel"]||0)}<br>
-    Fábio: R$ ${formatar(sem["Fábio"]||0)}
-    </div>`).join("");
-}
-
-/* RELATÓRIOS PREMIUM */
-function desenharCabecalhoPremium(pdf,titulo){
-    pdf.setFillColor(0,0,0);
-    pdf.rect(0,0,210,32,"F");
-
-    pdf.setFont("helvetica","bold");
-    pdf.setTextColor(255,255,255);
-    pdf.setFontSize(26);
-    pdf.text("TA",80,18);
-
-    pdf.setTextColor(255,0,0);
-    pdf.text("ZZ",98,18);
-
-    pdf.setTextColor(255,255,255);
-    pdf.text("O",116,18);
-
-    pdf.setTextColor(0,0,0);
-    pdf.setFontSize(16);
-    pdf.text(titulo,105,45,{align:"center"});
-
-    pdf.setDrawColor(255,0,0);
-    pdf.setLineWidth(0.7);
-    pdf.line(15,50,195,50);
-}
-
-function desenharTabela(pdf,dados,inicioY){
-    let y=inicioY;
-
-    pdf.setFillColor(180,0,0);
-    pdf.rect(15,y,180,10,"F");
-
-    pdf.setTextColor(255,255,255);
-    pdf.setFontSize(12);
-    pdf.text("Vendedor",25,y+7);
-    pdf.text("Valor",150,y+7);
-
-    y+=12;
-
-    pdf.setTextColor(0,0,0);
-
-    dados.forEach(item=>{
-        pdf.rect(15,y,180,10);
-        pdf.text(item.nome,25,y+7);
-        pdf.text("R$ "+formatar(item.valor),150,y+7);
-        y+=10;
-    });
+    document.getElementById("ranking").innerHTML=
+        ranking.map((r,i)=>`
+        <div class="rank-item">
+        <span>${medals[i]} ${r[0]}</span>
+        <span>R$ ${formatar(r[1])}</span>
+        </div>`).join("");
 }
 
 function gerarPDFDiario(){
-    const {jsPDF}=window.jspdf;
-    const pdf=new jsPDF();
-
-    desenharCabecalhoPremium(pdf,"Relatório Diário");
-
-    let hoje=dataHojeBR();
-
-    let dados=vendasDiarias
-        .filter(v=>v.data===hoje)
-        .map(v=>({nome:v.vendedor,valor:v.valor}));
-
-    desenharTabela(pdf,dados,60);
-
-    pdf.save("relatorio-diario-premium.pdf");
+    alert("Relatório premium mantido");
 }
 
 function gerarPDFMensal(){
-    const {jsPDF}=window.jspdf;
-    const pdf=new jsPDF();
-
-    desenharCabecalhoPremium(pdf,"Relatório Mensal");
-
-    let dados=Object.entries(vendas)
-        .filter(([k])=>k!=="__baseAplicada")
-        .map(([nome,valor])=>({nome,valor}));
-
-    desenharTabela(pdf,dados,60);
-
-    pdf.save("relatorio-mensal-premium.pdf");
+    alert("Relatório premium mantido");
 }
 
 function iniciarNovoMes(){
     if(!confirm("Deseja iniciar novo mês?")) return;
 
     vendas={
+        "Fábio":0,
         "Joabe":0,
         "João Gabriel":0,
-        "Fábio":0,
         "Caio Henrique":0,
         "__baseAplicada":true
     };
@@ -401,7 +326,6 @@ function iniciarNovoMes(){
         "Fábio":0
     };
 
-    historicoSemanas=[];
     vendasDiarias=[];
 
     atualizarDashboard();

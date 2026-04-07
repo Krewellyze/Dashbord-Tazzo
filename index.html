@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO | Dashboard de Metas</title>
+<title>TAZZO | Dashboard Premium</title>
 
 <link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 *{
     margin:0;
     padding:0;
     box-sizing:border-box;
-    font-family:Arial,sans-serif;
 }
 
 body{
@@ -22,6 +22,7 @@ body{
     animation:bgMove 10s ease infinite;
     padding:20px;
     color:white;
+    font-family:Arial,sans-serif;
 }
 
 @keyframes bgMove{
@@ -30,49 +31,33 @@ body{
     100%{background-position:0% 50%;}
 }
 
-.splash{
-    position:fixed;
-    inset:0;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background:linear-gradient(135deg,#180000,#8b0000,#1a0000);
-    z-index:9999;
-    animation:fadeOut 2.8s forwards;
-    animation-delay:1.5s;
-}
-
-.splash-logo,
-.logo{
-    font-family:'Bring Race',sans-serif;
-    font-size:52px;
-}
-
-.red{color:#ff0000;}
-.white{color:white;}
-
-@keyframes fadeOut{
-    to{
-        opacity:0;
-        visibility:hidden;
-        pointer-events:none;
-    }
-}
-
 .container{
-    max-width:450px;
+    max-width:460px;
     margin:auto;
 }
 
 .logo{
     text-align:center;
-    margin-bottom:20px;
+    font-size:42px;
+    margin-bottom:18px;
+    letter-spacing:2px;
+}
+
+.logo span{
+    font-family:'Bring Race',sans-serif !important;
+}
+
+.white{color:white;}
+.red{
+    color:#ff0000;
+    text-shadow:0 0 8px #ff0000;
 }
 
 .subtitle{
     text-align:center;
-    margin-bottom:20px;
     color:#ddd;
+    margin-bottom:20px;
+    font-size:14px;
 }
 
 .card{
@@ -81,11 +66,13 @@ body{
     border-radius:20px;
     padding:20px;
     margin-bottom:18px;
-    box-shadow:0 0 20px rgba(255,0,0,0.15);
+    box-shadow:0 0 20px rgba(255,0,0,0.18);
+    backdrop-filter:blur(12px);
 }
 
 .card h3{
     margin-bottom:15px;
+    font-size:18px;
 }
 
 .meta{
@@ -95,18 +82,18 @@ body{
 
 .progress-container{
     width:100%;
-    height:16px;
+    height:14px;
     background:rgba(255,255,255,0.08);
-    border-radius:12px;
+    border-radius:10px;
     overflow:hidden;
-    margin-top:10px;
+    margin-top:8px;
 }
 
 .progress-bar{
     height:100%;
     width:0%;
     background:linear-gradient(90deg,#ff0000,#ff5c5c);
-    transition:width 0.6s ease;
+    transition:width .6s ease;
 }
 
 input,select,button{
@@ -128,15 +115,24 @@ button{
     color:white;
     font-weight:bold;
 }
+
+.rank-item{
+    display:flex;
+    justify-content:space-between;
+    padding:10px 0;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.rank-item:last-child{
+    border-bottom:none;
+}
+
+.small-btn{
+    margin-top:8px;
+}
 </style>
 </head>
 <body>
-
-<div class="splash">
-    <div class="splash-logo">
-        <span class="white">TA</span><span class="red">ZZ</span><span class="white">O</span>
-    </div>
-</div>
 
 <div class="container">
 
@@ -144,7 +140,7 @@ button{
         <span class="white">TA</span><span class="red">ZZ</span><span class="white">O</span>
     </div>
 
-    <div class="subtitle">Dashboard Beta de Metas</div>
+    <div class="subtitle">Dashboard Premium de Metas</div>
 
     <div class="card">
         <h3>Meta Geral da Loja</h3>
@@ -156,7 +152,7 @@ button{
     </div>
 
     <div class="card">
-        <h3>Lançar Venda</h3>
+        <h3>Lançamento Diário</h3>
 
         <select id="vendedor">
             <option>Joabe</option>
@@ -164,29 +160,31 @@ button{
             <option>Fábio</option>
         </select>
 
-        <input type="number" id="valorVenda" placeholder="Valor vendido">
+        <input type="number" id="valorVendaDia" placeholder="Valor vendido no dia">
 
-        <button onclick="adicionarVenda()">Adicionar Venda</button>
+        <button onclick="adicionarVendaDia()">Adicionar valor do dia</button>
     </div>
 
     <div class="card">
-        <h3>Vendedores</h3>
+        <h3>Performance por vendedor</h3>
 
         <div class="meta">Joabe: R$ <span id="joabe">0,00</span></div>
-        <div class="progress-container">
-            <div class="progress-bar" id="barJoabe"></div>
-        </div>
+        <div class="progress-container"><div class="progress-bar" id="barJoabe"></div></div>
 
         <div class="meta">João Gabriel: R$ <span id="joao">0,00</span></div>
-        <div class="progress-container">
-            <div class="progress-bar" id="barJoao"></div>
-        </div>
+        <div class="progress-container"><div class="progress-bar" id="barJoao"></div></div>
 
         <div class="meta">Fábio: R$ <span id="fabio">0,00</span></div>
-        <div class="progress-container">
-            <div class="progress-bar" id="barFabio"></div>
-        </div>
+        <div class="progress-container"><div class="progress-bar" id="barFabio"></div></div>
     </div>
+
+    <div class="card">
+        <h3>Ranking do Mês</h3>
+        <div id="ranking"></div>
+    </div>
+
+    <button onclick="gerarPDF()">Relatório Mensal em PDF</button>
+    <button class="small-btn" onclick="limparDashboard()">Iniciar Novo Mês</button>
 
 </div>
 
@@ -194,19 +192,20 @@ button{
 const META_MENSAL = 70000;
 const META_LOJA = 210000;
 
-let vendas = JSON.parse(localStorage.getItem("tazzoVendas")) || {
+let vendas = JSON.parse(localStorage.getItem("tazzoDashboard")) || {
     "Joabe":0,
     "João Gabriel":0,
     "Fábio":0
 };
 
 function salvar(){
-    localStorage.setItem("tazzoVendas",JSON.stringify(vendas));
+    localStorage.setItem("tazzoDashboard", JSON.stringify(vendas));
 }
 
 function formatar(valor){
     return valor.toLocaleString("pt-BR", {
-        minimumFractionDigits:2
+        minimumFractionDigits:2,
+        maximumFractionDigits:2
     });
 }
 
@@ -215,36 +214,81 @@ function atualizarDashboard(){
     document.getElementById("joao").innerText = formatar(vendas["João Gabriel"]);
     document.getElementById("fabio").innerText = formatar(vendas["Fábio"]);
 
-    document.getElementById("barJoabe").style.width =
-        (vendas["Joabe"]/META_MENSAL*100)+"%";
+    document.getElementById("barJoabe").style.width = (vendas["Joabe"]/META_MENSAL*100)+"%";
+    document.getElementById("barJoao").style.width = (vendas["João Gabriel"]/META_MENSAL*100)+"%";
+    document.getElementById("barFabio").style.width = (vendas["Fábio"]/META_MENSAL*100)+"%";
 
-    document.getElementById("barJoao").style.width =
-        (vendas["João Gabriel"]/META_MENSAL*100)+"%";
-
-    document.getElementById("barFabio").style.width =
-        (vendas["Fábio"]/META_MENSAL*100)+"%";
-
-    let total = vendas["Joabe"] + vendas["João Gabriel"] + vendas["Fábio"];
+    let total = Object.values(vendas).reduce((a,b)=>a+b,0);
 
     document.getElementById("totalLoja").innerText = formatar(total);
+    document.getElementById("barraLoja").style.width = (total/META_LOJA*100)+"%";
 
-    document.getElementById("barraLoja").style.width =
-        (total/META_LOJA*100)+"%";
+    atualizarRanking();
 
     salvar();
 }
 
-function adicionarVenda(){
+function atualizarRanking(){
+    const ranking = Object.entries(vendas)
+        .sort((a,b)=>b[1]-a[1]);
+
+    let medals = ["🥇","🥈","🥉"];
+
+    let html = "";
+
+    ranking.forEach((item,index)=>{
+        html += `
+            <div class="rank-item">
+                <span>${medals[index]} ${item[0]}</span>
+                <span>R$ ${formatar(item[1])}</span>
+            </div>
+        `;
+    });
+
+    document.getElementById("ranking").innerHTML = html;
+}
+
+function adicionarVendaDia(){
     let vendedor = document.getElementById("vendedor").value;
-    let valor = parseFloat(document.getElementById("valorVenda").value);
+    let valor = parseFloat(document.getElementById("valorVendaDia").value);
 
     if(isNaN(valor) || valor<=0) return;
 
     vendas[vendedor] += valor;
 
-    document.getElementById("valorVenda").value = "";
+    document.getElementById("valorVendaDia").value = "";
 
     atualizarDashboard();
+}
+
+function limparDashboard(){
+    if(confirm("Deseja iniciar um novo mês?")){
+        vendas = {
+            "Joabe":0,
+            "João Gabriel":0,
+            "Fábio":0
+        };
+        atualizarDashboard();
+    }
+}
+
+function gerarPDF(){
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+
+    pdf.setFontSize(20);
+    pdf.text("TAZZO - Relatório Mensal", 20, 20);
+
+    pdf.setFontSize(14);
+    pdf.text(`Joabe: R$ ${formatar(vendas["Joabe"])}`,20,50);
+    pdf.text(`João Gabriel: R$ ${formatar(vendas["João Gabriel"])}`,20,65);
+    pdf.text(`Fábio: R$ ${formatar(vendas["Fábio"])}`,20,80);
+
+    let total = Object.values(vendas).reduce((a,b)=>a+b,0);
+
+    pdf.text(`Total Loja: R$ ${formatar(total)}`,20,100);
+
+    pdf.save("relatorio-tazzo.pdf");
 }
 
 atualizarDashboard();

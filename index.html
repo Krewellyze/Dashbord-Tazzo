@@ -175,7 +175,12 @@ button{
             <option>Fábio</option>
         </select>
 
-        <input type="number" id="valorVendaDia" placeholder="Valor vendido no dia">
+        <input
+            type="text"
+            inputmode="decimal"
+            id="valorVendaDia"
+            placeholder="Valor vendido no dia"
+        >
 
         <button onclick="adicionarVendaDia()">Adicionar valor do dia</button>
     </div>
@@ -233,23 +238,12 @@ function percentual(valor, meta){
 
 function calcularMetaRestante(total){
     const hoje = new Date();
+    const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0).getDate();
+    const diasRestantes = ultimoDia - hoje.getDate() + 1;
+    const faltante = Math.max(0, META_LOJA-total);
+    const diariaNecessaria = faltante/diasRestantes;
 
-    const ano = hoje.getFullYear();
-    const mes = hoje.getMonth();
-
-    const ultimoDia = new Date(ano, mes + 1, 0).getDate();
-    const diaAtual = hoje.getDate();
-
-    const diasRestantes = ultimoDia - diaAtual + 1;
-
-    const faltante = Math.max(0, META_LOJA - total);
-    const diariaNecessaria = faltante / diasRestantes;
-
-    return {
-        faltante,
-        diasRestantes,
-        diariaNecessaria
-    };
+    return {faltante,diasRestantes,diariaNecessaria};
 }
 
 function atualizarDashboard(){
@@ -275,7 +269,7 @@ function atualizarDashboard(){
 
     document.getElementById("metaRestanteInfo").innerHTML = `
         Faltam <strong>R$ ${formatar(metaInfo.faltante)}</strong><br>
-        Restam <strong>${metaInfo.diasRestantes} dias</strong> no mês<br>
+        Restam <strong>${metaInfo.diasRestantes} dias</strong><br>
         Necessário vender <strong>R$ ${formatar(metaInfo.diariaNecessaria)}</strong> por dia
     `;
 
@@ -284,9 +278,7 @@ function atualizarDashboard(){
 }
 
 function atualizarRanking(){
-    const ranking = Object.entries(vendas)
-        .sort((a,b)=>b[1]-a[1]);
-
+    const ranking = Object.entries(vendas).sort((a,b)=>b[1]-a[1]);
     const medals = ["🥇","🥈","🥉"];
 
     let html = "";
@@ -305,12 +297,19 @@ function atualizarRanking(){
 
 function adicionarVendaDia(){
     let vendedor = document.getElementById("vendedor").value;
-    let valor = parseFloat(document.getElementById("valorVendaDia").value);
+
+    let valorTexto = document.getElementById("valorVendaDia").value
+        .replace(/\./g,"")
+        .replace(",", ".");
+
+    let valor = parseFloat(valorTexto);
 
     if(isNaN(valor) || valor<=0) return;
 
     vendas[vendedor] += valor;
+
     document.getElementById("valorVendaDia").value = "";
+
     atualizarDashboard();
 }
 
@@ -348,36 +347,31 @@ function gerarPDF(){
 
     const data = new Date();
     const dataFormatada = data.toLocaleDateString("pt-BR");
-    const total = Object.values(vendas).reduce((a,b)=>a+b,0);
+
+    let total = Object.values(vendas).reduce((a,b)=>a+b,0);
 
     const metaInfo = calcularMetaRestante(total);
 
     pdf.setFontSize(24);
-    pdf.text("TAZZO", 105, 20, { align:"center" });
-
+    pdf.text("TAZZO",105,20,{align:"center"});
     pdf.setFontSize(16);
-    pdf.text("Relatório Mensal de Performance", 105, 30, { align:"center" });
-
+    pdf.text("Relatório Mensal de Performance",105,30,{align:"center"});
     pdf.line(20,36,190,36);
 
-    pdf.setFontSize(12);
     pdf.text(`Data: ${dataFormatada}`,20,45);
 
-    pdf.text(`Joabe: R$ ${formatar(vendas["Joabe"])} (${percentual(vendas["Joabe"], META_MENSAL)}%)`,25,70);
-    pdf.text(`João Gabriel: R$ ${formatar(vendas["João Gabriel"])} (${percentual(vendas["João Gabriel"], META_MENSAL)}%)`,25,85);
-    pdf.text(`Fábio: R$ ${formatar(vendas["Fábio"])} (${percentual(vendas["Fábio"], META_MENSAL)}%)`,25,100);
+    pdf.text(`Joabe: R$ ${formatar(vendas["Joabe"])}`,25,70);
+    pdf.text(`João Gabriel: R$ ${formatar(vendas["João Gabriel"])}`,25,85);
+    pdf.text(`Fábio: R$ ${formatar(vendas["Fábio"])}`,25,100);
 
     pdf.text(`Total loja: R$ ${formatar(total)}`,25,125);
-    pdf.text(`Percentual meta: ${percentual(total, META_LOJA)}%`,25,140);
-
-    pdf.text(`Faltam: R$ ${formatar(metaInfo.faltante)}`,25,160);
-    pdf.text(`Dias restantes: ${metaInfo.diasRestantes}`,25,175);
-    pdf.text(`Meta diária necessária: R$ ${formatar(metaInfo.diariaNecessaria)}`,25,190);
+    pdf.text(`Faltam: R$ ${formatar(metaInfo.faltante)}`,25,145);
+    pdf.text(`Meta diária: R$ ${formatar(metaInfo.diariaNecessaria)}`,25,160);
 
     pdf.save(`relatorio-tazzo-${dataFormatada.replace(/\//g,"-")}.pdf`);
 }
 
-setInterval(atualizarDataHora, 1000);
+setInterval(atualizarDataHora,1000);
 atualizarDataHora();
 atualizarDashboard();
 </script>

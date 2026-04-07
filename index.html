@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TAZZO | Dashboard de Metas</title>
+
+<link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    min-height:100vh;
+    background:linear-gradient(135deg,#180000,#8b0000,#1a0000);
+    background-size:400% 400%;
+    animation:bgMove 10s ease infinite;
+    padding:20px;
+    color:white;
+}
+
+@keyframes bgMove{
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
+}
+
+.splash{
+    position:fixed;
+    inset:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:linear-gradient(135deg,#180000,#8b0000,#1a0000);
+    z-index:9999;
+    animation:fadeOut 2.8s forwards;
+    animation-delay:1.5s;
+}
+
+.splash-logo,
+.logo{
+    font-family:'Bring Race',sans-serif;
+    font-size:52px;
+}
+
+.red{color:#ff0000;}
+.white{color:white;}
+
+@keyframes fadeOut{
+    to{
+        opacity:0;
+        visibility:hidden;
+        pointer-events:none;
+    }
+}
+
+.container{
+    max-width:450px;
+    margin:auto;
+}
+
+.logo{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+.subtitle{
+    text-align:center;
+    margin-bottom:20px;
+    color:#ddd;
+}
+
+.card{
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:20px;
+    padding:20px;
+    margin-bottom:18px;
+    box-shadow:0 0 20px rgba(255,0,0,0.15);
+}
+
+.card h3{
+    margin-bottom:15px;
+}
+
+.meta{
+    margin:8px 0;
+    font-size:15px;
+}
+
+.progress-container{
+    width:100%;
+    height:16px;
+    background:rgba(255,255,255,0.08);
+    border-radius:12px;
+    overflow:hidden;
+    margin-top:10px;
+}
+
+.progress-bar{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,#ff0000,#ff5c5c);
+    transition:width 0.6s ease;
+}
+
+input,select,button{
+    width:100%;
+    padding:14px;
+    margin-bottom:12px;
+    border:none;
+    border-radius:12px;
+    font-size:16px;
+}
+
+input,select{
+    background:rgba(0,0,0,0.35);
+    color:white;
+}
+
+button{
+    background:linear-gradient(90deg,#ff0000,#8b0000);
+    color:white;
+    font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<div class="splash">
+    <div class="splash-logo">
+        <span class="white">TA</span><span class="red">ZZ</span><span class="white">O</span>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="logo">
+        <span class="white">TA</span><span class="red">ZZ</span><span class="white">O</span>
+    </div>
+
+    <div class="subtitle">Dashboard Beta de Metas</div>
+
+    <div class="card">
+        <h3>Meta Geral da Loja</h3>
+        <div class="meta">Meta: R$ 210.000,00</div>
+        <div class="meta">Atual: R$ <span id="totalLoja">0,00</span></div>
+        <div class="progress-container">
+            <div class="progress-bar" id="barraLoja"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Lançar Venda</h3>
+
+        <select id="vendedor">
+            <option>Joabe</option>
+            <option>João Gabriel</option>
+            <option>Fábio</option>
+        </select>
+
+        <input type="number" id="valorVenda" placeholder="Valor vendido">
+
+        <button onclick="adicionarVenda()">Adicionar Venda</button>
+    </div>
+
+    <div class="card">
+        <h3>Vendedores</h3>
+
+        <div class="meta">Joabe: R$ <span id="joabe">0,00</span></div>
+        <div class="progress-container">
+            <div class="progress-bar" id="barJoabe"></div>
+        </div>
+
+        <div class="meta">João Gabriel: R$ <span id="joao">0,00</span></div>
+        <div class="progress-container">
+            <div class="progress-bar" id="barJoao"></div>
+        </div>
+
+        <div class="meta">Fábio: R$ <span id="fabio">0,00</span></div>
+        <div class="progress-container">
+            <div class="progress-bar" id="barFabio"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const META_MENSAL = 70000;
+const META_LOJA = 210000;
+
+let vendas = JSON.parse(localStorage.getItem("tazzoVendas")) || {
+    "Joabe":0,
+    "João Gabriel":0,
+    "Fábio":0
+};
+
+function salvar(){
+    localStorage.setItem("tazzoVendas",JSON.stringify(vendas));
+}
+
+function formatar(valor){
+    return valor.toLocaleString("pt-BR", {
+        minimumFractionDigits:2
+    });
+}
+
+function atualizarDashboard(){
+    document.getElementById("joabe").innerText = formatar(vendas["Joabe"]);
+    document.getElementById("joao").innerText = formatar(vendas["João Gabriel"]);
+    document.getElementById("fabio").innerText = formatar(vendas["Fábio"]);
+
+    document.getElementById("barJoabe").style.width =
+        (vendas["Joabe"]/META_MENSAL*100)+"%";
+
+    document.getElementById("barJoao").style.width =
+        (vendas["João Gabriel"]/META_MENSAL*100)+"%";
+
+    document.getElementById("barFabio").style.width =
+        (vendas["Fábio"]/META_MENSAL*100)+"%";
+
+    let total = vendas["Joabe"] + vendas["João Gabriel"] + vendas["Fábio"];
+
+    document.getElementById("totalLoja").innerText = formatar(total);
+
+    document.getElementById("barraLoja").style.width =
+        (total/META_LOJA*100)+"%";
+
+    salvar();
+}
+
+function adicionarVenda(){
+    let vendedor = document.getElementById("vendedor").value;
+    let valor = parseFloat(document.getElementById("valorVenda").value);
+
+    if(isNaN(valor) || valor<=0) return;
+
+    vendas[vendedor] += valor;
+
+    document.getElementById("valorVenda").value = "";
+
+    atualizarDashboard();
+}
+
+atualizarDashboard();
+</script>
+
+</body>
+</html>

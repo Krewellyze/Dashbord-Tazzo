@@ -9,11 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
+*{margin:0;padding:0;box-sizing:border-box;}
 
 body{
     min-height:100vh;
@@ -40,7 +36,6 @@ body{
     text-align:center;
     font-size:42px;
     margin-bottom:18px;
-    letter-spacing:2px;
 }
 
 .logo span{
@@ -56,8 +51,15 @@ body{
 .subtitle{
     text-align:center;
     color:#ddd;
-    margin-bottom:20px;
+    margin-bottom:8px;
     font-size:14px;
+}
+
+.data-atual{
+    text-align:center;
+    color:#ddd;
+    margin-bottom:18px;
+    font-size:13px;
 }
 
 .card{
@@ -80,6 +82,16 @@ body{
     font-size:15px;
 }
 
+.info-extra{
+    margin-top:10px;
+    padding:12px;
+    border-radius:12px;
+    background:rgba(255,255,255,0.05);
+    font-size:14px;
+    color:#ddd;
+    line-height:1.6;
+}
+
 .progress-container{
     width:100%;
     height:14px;
@@ -94,6 +106,13 @@ body{
     width:0%;
     background:linear-gradient(90deg,#ff0000,#ff5c5c);
     transition:width .6s ease;
+}
+
+.percentual{
+    font-size:13px;
+    color:#ddd;
+    margin-top:4px;
+    margin-bottom:8px;
 }
 
 input,select,button{
@@ -122,14 +141,6 @@ button{
     padding:10px 0;
     border-bottom:1px solid rgba(255,255,255,0.08);
 }
-
-.rank-item:last-child{
-    border-bottom:none;
-}
-
-.small-btn{
-    margin-top:8px;
-}
 </style>
 </head>
 <body>
@@ -141,14 +152,18 @@ button{
     </div>
 
     <div class="subtitle">Dashboard Premium de Metas</div>
+    <div id="dataAtual" class="data-atual"></div>
 
     <div class="card">
         <h3>Meta Geral da Loja</h3>
         <div class="meta">Meta: R$ 210.000,00</div>
         <div class="meta">Atual: R$ <span id="totalLoja">0,00</span></div>
+        <div class="percentual" id="percentLoja">0%</div>
         <div class="progress-container">
             <div class="progress-bar" id="barraLoja"></div>
         </div>
+
+        <div class="info-extra" id="metaRestanteInfo"></div>
     </div>
 
     <div class="card">
@@ -169,12 +184,15 @@ button{
         <h3>Performance por vendedor</h3>
 
         <div class="meta">Joabe: R$ <span id="joabe">0,00</span></div>
+        <div class="percentual" id="percJoabe">0%</div>
         <div class="progress-container"><div class="progress-bar" id="barJoabe"></div></div>
 
         <div class="meta">João Gabriel: R$ <span id="joao">0,00</span></div>
+        <div class="percentual" id="percJoao">0%</div>
         <div class="progress-container"><div class="progress-bar" id="barJoao"></div></div>
 
         <div class="meta">Fábio: R$ <span id="fabio">0,00</span></div>
+        <div class="percentual" id="percFabio">0%</div>
         <div class="progress-container"><div class="progress-bar" id="barFabio"></div></div>
     </div>
 
@@ -184,7 +202,7 @@ button{
     </div>
 
     <button onclick="gerarPDF()">Relatório Mensal em PDF</button>
-    <button class="small-btn" onclick="limparDashboard()">Iniciar Novo Mês</button>
+    <button onclick="limparDashboard()">Iniciar Novo Mês</button>
 
 </div>
 
@@ -209,22 +227,59 @@ function formatar(valor){
     });
 }
 
+function percentual(valor, meta){
+    return ((valor/meta)*100).toFixed(1);
+}
+
+function calcularMetaRestante(total){
+    const hoje = new Date();
+
+    const ano = hoje.getFullYear();
+    const mes = hoje.getMonth();
+
+    const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+    const diaAtual = hoje.getDate();
+
+    const diasRestantes = ultimoDia - diaAtual + 1;
+
+    const faltante = Math.max(0, META_LOJA - total);
+    const diariaNecessaria = faltante / diasRestantes;
+
+    return {
+        faltante,
+        diasRestantes,
+        diariaNecessaria
+    };
+}
+
 function atualizarDashboard(){
     document.getElementById("joabe").innerText = formatar(vendas["Joabe"]);
     document.getElementById("joao").innerText = formatar(vendas["João Gabriel"]);
     document.getElementById("fabio").innerText = formatar(vendas["Fábio"]);
 
-    document.getElementById("barJoabe").style.width = (vendas["Joabe"]/META_MENSAL*100)+"%";
-    document.getElementById("barJoao").style.width = (vendas["João Gabriel"]/META_MENSAL*100)+"%";
-    document.getElementById("barFabio").style.width = (vendas["Fábio"]/META_MENSAL*100)+"%";
+    document.getElementById("percJoabe").innerText = percentual(vendas["Joabe"], META_MENSAL)+"% da meta";
+    document.getElementById("percJoao").innerText = percentual(vendas["João Gabriel"], META_MENSAL)+"% da meta";
+    document.getElementById("percFabio").innerText = percentual(vendas["Fábio"], META_MENSAL)+"% da meta";
+
+    document.getElementById("barJoabe").style.width = percentual(vendas["Joabe"], META_MENSAL)+"%";
+    document.getElementById("barJoao").style.width = percentual(vendas["João Gabriel"], META_MENSAL)+"%";
+    document.getElementById("barFabio").style.width = percentual(vendas["Fábio"], META_MENSAL)+"%";
 
     let total = Object.values(vendas).reduce((a,b)=>a+b,0);
 
     document.getElementById("totalLoja").innerText = formatar(total);
-    document.getElementById("barraLoja").style.width = (total/META_LOJA*100)+"%";
+    document.getElementById("percentLoja").innerText = percentual(total, META_LOJA)+"% da meta";
+    document.getElementById("barraLoja").style.width = percentual(total, META_LOJA)+"%";
+
+    const metaInfo = calcularMetaRestante(total);
+
+    document.getElementById("metaRestanteInfo").innerHTML = `
+        Faltam <strong>R$ ${formatar(metaInfo.faltante)}</strong><br>
+        Restam <strong>${metaInfo.diasRestantes} dias</strong> no mês<br>
+        Necessário vender <strong>R$ ${formatar(metaInfo.diariaNecessaria)}</strong> por dia
+    `;
 
     atualizarRanking();
-
     salvar();
 }
 
@@ -232,7 +287,7 @@ function atualizarRanking(){
     const ranking = Object.entries(vendas)
         .sort((a,b)=>b[1]-a[1]);
 
-    let medals = ["🥇","🥈","🥉"];
+    const medals = ["🥇","🥈","🥉"];
 
     let html = "";
 
@@ -255,9 +310,7 @@ function adicionarVendaDia(){
     if(isNaN(valor) || valor<=0) return;
 
     vendas[vendedor] += valor;
-
     document.getElementById("valorVendaDia").value = "";
-
     atualizarDashboard();
 }
 
@@ -272,25 +325,60 @@ function limparDashboard(){
     }
 }
 
+function atualizarDataHora(){
+    const agora = new Date();
+
+    const opcoes = {
+        timeZone:"America/Sao_Paulo",
+        day:"2-digit",
+        month:"2-digit",
+        year:"numeric",
+        hour:"2-digit",
+        minute:"2-digit",
+        second:"2-digit"
+    };
+
+    document.getElementById("dataAtual").innerText =
+        agora.toLocaleString("pt-BR", opcoes) + " • Horário de Brasília";
+}
+
 function gerarPDF(){
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF();
 
-    pdf.setFontSize(20);
-    pdf.text("TAZZO - Relatório Mensal", 20, 20);
+    const data = new Date();
+    const dataFormatada = data.toLocaleDateString("pt-BR");
+    const total = Object.values(vendas).reduce((a,b)=>a+b,0);
 
-    pdf.setFontSize(14);
-    pdf.text(`Joabe: R$ ${formatar(vendas["Joabe"])}`,20,50);
-    pdf.text(`João Gabriel: R$ ${formatar(vendas["João Gabriel"])}`,20,65);
-    pdf.text(`Fábio: R$ ${formatar(vendas["Fábio"])}`,20,80);
+    const metaInfo = calcularMetaRestante(total);
 
-    let total = Object.values(vendas).reduce((a,b)=>a+b,0);
+    pdf.setFontSize(24);
+    pdf.text("TAZZO", 105, 20, { align:"center" });
 
-    pdf.text(`Total Loja: R$ ${formatar(total)}`,20,100);
+    pdf.setFontSize(16);
+    pdf.text("Relatório Mensal de Performance", 105, 30, { align:"center" });
 
-    pdf.save("relatorio-tazzo.pdf");
+    pdf.line(20,36,190,36);
+
+    pdf.setFontSize(12);
+    pdf.text(`Data: ${dataFormatada}`,20,45);
+
+    pdf.text(`Joabe: R$ ${formatar(vendas["Joabe"])} (${percentual(vendas["Joabe"], META_MENSAL)}%)`,25,70);
+    pdf.text(`João Gabriel: R$ ${formatar(vendas["João Gabriel"])} (${percentual(vendas["João Gabriel"], META_MENSAL)}%)`,25,85);
+    pdf.text(`Fábio: R$ ${formatar(vendas["Fábio"])} (${percentual(vendas["Fábio"], META_MENSAL)}%)`,25,100);
+
+    pdf.text(`Total loja: R$ ${formatar(total)}`,25,125);
+    pdf.text(`Percentual meta: ${percentual(total, META_LOJA)}%`,25,140);
+
+    pdf.text(`Faltam: R$ ${formatar(metaInfo.faltante)}`,25,160);
+    pdf.text(`Dias restantes: ${metaInfo.diasRestantes}`,25,175);
+    pdf.text(`Meta diária necessária: R$ ${formatar(metaInfo.diariaNecessaria)}`,25,190);
+
+    pdf.save(`relatorio-tazzo-${dataFormatada.replace(/\//g,"-")}.pdf`);
 }
 
+setInterval(atualizarDataHora, 1000);
+atualizarDataHora();
 atualizarDashboard();
 </script>
 

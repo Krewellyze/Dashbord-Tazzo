@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>TAZZO | Dashboard Premium V8</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TAZZO | Dashboard Premium V9</title>
 
 <link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -30,21 +30,22 @@ body{
     font-size:42px;
     margin-bottom:18px;
 }
-.logo span{font-family:'Bring Race',sans-serif !important}
+.logo span{
+    font-family:'Bring Race',sans-serif !important;
+}
 .white{color:#fff}
 .red{color:#ff0000;text-shadow:0 0 8px #ff0000}
 
 .card{
-    background:rgba(255,255,255,0.08);
+    background:rgba(255,255,255,.08);
     border-radius:20px;
     padding:20px;
     margin-bottom:18px;
-    box-shadow:0 0 20px rgba(255,0,0,0.18);
+    box-shadow:0 0 20px rgba(255,0,0,.18);
     backdrop-filter:blur(12px);
 }
-h3{margin-bottom:12px}
 
-input,select,button{
+button,input,select{
     width:100%;
     padding:14px;
     margin-bottom:12px;
@@ -53,7 +54,7 @@ input,select,button{
     font-size:16px;
 }
 input,select{
-    background:rgba(0,0,0,0.35);
+    background:rgba(0,0,0,.35);
     color:#fff;
 }
 button{
@@ -65,7 +66,7 @@ button{
 .progress-container{
     width:100%;
     height:14px;
-    background:rgba(255,255,255,0.08);
+    background:rgba(255,255,255,.08);
     border-radius:10px;
     overflow:hidden;
     margin:8px 0;
@@ -73,13 +74,24 @@ button{
 .progress-bar{
     height:100%;
     background:linear-gradient(90deg,#ff0000,#ff5c5c);
-    transition:.5s;
 }
 
 .rank-item{
     display:flex;
     justify-content:space-between;
     padding:8px 0;
+}
+.week-history{
+    margin:10px 0;
+    padding:10px;
+    border-radius:12px;
+    background:rgba(255,255,255,.05);
+}
+.data-brasilia{
+    font-size:13px;
+    color:#ddd;
+    text-align:center;
+    margin-bottom:16px;
 }
 </style>
 </head>
@@ -91,8 +103,10 @@ button{
 <span class="white">TA</span><span class="red">ZZ</span><span class="white">O</span>
 </div>
 
+<div id="dataHora" class="data-brasilia"></div>
+
 <div class="card">
-<h3>Meta Geral da Loja</h3>
+<h3>Meta Geral</h3>
 <div>Total: R$ <span id="totalLoja">0,00</span></div>
 <div id="percentLoja">0%</div>
 <div class="progress-container">
@@ -111,7 +125,7 @@ button{
 <option>Caio Henrique</option>
 </select>
 
-<input type="text" inputmode="decimal" id="valorVendaDia" placeholder="Valor vendido no dia">
+<input type="text" inputmode="decimal" id="valorVendaDia" placeholder="Valor vendido">
 
 <button onclick="adicionarVendaDia()">Adicionar valor</button>
 </div>
@@ -124,12 +138,11 @@ button{
 <div class="card">
 <h3>Performance Semanal</h3>
 <div id="performanceSemanal"></div>
-<div style="margin-top:10px;font-size:13px;color:#ddd;">
-Última semana:<br>
-João Gabriel: R$ <span id="lastJoao">13.077,33</span><br>
-Fábio: R$ <span id="lastFabio">15.809,44</span><br>
-Joabe: R$ <span id="lastJoabe">16.114,43</span>
 </div>
+
+<div class="card">
+<h3>Últimas 4 Semanas</h3>
+<div id="historico4Semanas"></div>
 </div>
 
 <div class="card">
@@ -147,30 +160,65 @@ Joabe: R$ <span id="lastJoabe">16.114,43</span>
 const META_LOJA=210000;
 const META_MENSAL=70000;
 const META_SEMANAL=17500;
-
 const vendedores=["Joabe","João Gabriel","Fábio"];
 
 let vendas=JSON.parse(localStorage.getItem("tazzoDashboard"))||{
-    "Joabe":0,
-    "João Gabriel":0,
-    "Fábio":0,
-    "Caio Henrique":0
+    "Joabe":16114.43,
+    "João Gabriel":13077.33,
+    "Fábio":15809.44,
+    "Caio Henrique":2566.35
 };
 
-let semanaAtualStorage=localStorage.getItem("tazzoSemanaAtual");
-let semanaVendas=JSON.parse(localStorage.getItem("tazzoSemana"))||{
+let semanaAtual=JSON.parse(localStorage.getItem("tazzoSemanaAtual"))||{
     "Joabe":0,
     "João Gabriel":0,
     "Fábio":0
 };
 
-let ultimaSemana=JSON.parse(localStorage.getItem("tazzoUltimaSemana"))||{
-    "Joabe":16114.43,
-    "João Gabriel":13077.33,
-    "Fábio":15809.44
-};
+let historicoSemanas=JSON.parse(localStorage.getItem("tazzoHistorico4"))||[];
 
 let vendasDiarias=JSON.parse(localStorage.getItem("tazzoDiario"))||[];
+
+function agoraBrasilia(){
+    return new Date(new Date().toLocaleString("en-US",{timeZone:"America/Sao_Paulo"}));
+}
+
+function dataHojeBR(){
+    return agoraBrasilia().toLocaleDateString("pt-BR");
+}
+
+function semanaAno(){
+    const d=agoraBrasilia();
+    const first=new Date(d.getFullYear(),0,1);
+    return Math.ceil((((d-first)/86400000)+first.getDay()+1)/7);
+}
+
+let semanaControle=localStorage.getItem("tazzoSemanaNumero")||semanaAno();
+
+function verificarViradaSemana(){
+    const atual=semanaAno();
+
+    if(Number(semanaControle)!==atual){
+        historicoSemanas.unshift({...semanaAtual});
+        historicoSemanas=historicoSemanas.slice(0,4);
+
+        semanaAtual={
+            "Joabe":0,
+            "João Gabriel":0,
+            "Fábio":0
+        };
+
+        semanaControle=atual;
+        localStorage.setItem("tazzoSemanaNumero",atual);
+    }
+}
+
+function salvar(){
+    localStorage.setItem("tazzoDashboard",JSON.stringify(vendas));
+    localStorage.setItem("tazzoSemanaAtual",JSON.stringify(semanaAtual));
+    localStorage.setItem("tazzoHistorico4",JSON.stringify(historicoSemanas));
+    localStorage.setItem("tazzoDiario",JSON.stringify(vendasDiarias));
+}
 
 function formatar(v){
     return v.toLocaleString("pt-BR",{minimumFractionDigits:2});
@@ -180,95 +228,64 @@ function percentual(v,m){
     return ((v/m)*100).toFixed(1);
 }
 
-function obterSemanaAno(){
-    const d=new Date();
-    const first=new Date(d.getFullYear(),0,1);
-    return Math.ceil((((d-first)/86400000)+first.getDay()+1)/7);
-}
-
-function verificarNovaSemana(){
-    const semanaAtual=obterSemanaAno();
-
-    if(semanaAtualStorage==null){
-        localStorage.setItem("tazzoSemanaAtual",semanaAtual);
-        semanaAtualStorage=semanaAtual;
-        return;
-    }
-
-    if(parseInt(semanaAtualStorage)!==semanaAtual){
-        ultimaSemana={...semanaVendas};
-
-        localStorage.setItem("tazzoUltimaSemana",JSON.stringify(ultimaSemana));
-
-        semanaVendas={
-            "Joabe":0,
-            "João Gabriel":0,
-            "Fábio":0
-        };
-
-        localStorage.setItem("tazzoSemana",JSON.stringify(semanaVendas));
-        localStorage.setItem("tazzoSemanaAtual",semanaAtual);
-
-        semanaAtualStorage=semanaAtual;
-    }
-}
-
-function salvar(){
-    localStorage.setItem("tazzoDashboard",JSON.stringify(vendas));
-    localStorage.setItem("tazzoSemana",JSON.stringify(semanaVendas));
-    localStorage.setItem("tazzoUltimaSemana",JSON.stringify(ultimaSemana));
-    localStorage.setItem("tazzoDiario",JSON.stringify(vendasDiarias));
-}
-
 function adicionarVendaDia(){
-    verificarNovaSemana();
+    verificarViradaSemana();
 
     let nome=document.getElementById("vendedor").value;
-    let valorTexto=document.getElementById("valorVendaDia").value
-        .replace(/\./g,"")
-        .replace(",", ".");
 
-    let valor=parseFloat(valorTexto);
+    let valor=parseFloat(
+        document.getElementById("valorVendaDia").value
+        .replace(/\./g,"")
+        .replace(",",".")
+    );
 
     if(isNaN(valor)||valor<=0)return;
 
     vendas[nome]+=valor;
 
     if(vendedores.includes(nome)){
-        semanaVendas[nome]+=valor;
+        semanaAtual[nome]+=valor;
     }
 
     vendasDiarias.push({
         vendedor:nome,
         valor,
-        data:new Date().toLocaleDateString("pt-BR")
+        data:dataHojeBR()
     });
 
     document.getElementById("valorVendaDia").value="";
+
     atualizarDashboard();
 }
 
 function atualizarDashboard(){
-    verificarNovaSemana();
+    verificarViradaSemana();
 
-    atualizarMetaGeral();
+    atualizarDataHora();
+    atualizarMeta();
     atualizarMensal();
     atualizarSemanal();
     atualizarRanking();
+    atualizarHistorico4();
     salvar();
 }
 
-function atualizarMetaGeral(){
+function atualizarDataHora(){
+    document.getElementById("dataHora").innerText=
+        agoraBrasilia().toLocaleString("pt-BR")+" • Brasília";
+}
+
+function atualizarMeta(){
     let total=Object.values(vendas).reduce((a,b)=>a+b,0);
+
     let pct=percentual(total,META_LOJA);
 
     document.getElementById("totalLoja").innerText=formatar(total);
     document.getElementById("percentLoja").innerText=pct+"%";
     document.getElementById("barraLoja").style.width=pct+"%";
 
-    let faltam=Math.max(0,META_LOJA-total);
     document.getElementById("metaInfo").innerHTML=
-        `Faltam R$ ${formatar(faltam)} para a meta`;
+        `Faltam R$ ${formatar(Math.max(0,META_LOJA-total))}`;
 }
 
 function atualizarMensal(){
@@ -279,11 +296,9 @@ function atualizarMensal(){
         let pct=percentual(valor,META_MENSAL);
 
         html+=`
-        <div style="margin-bottom:14px;">
-            <div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
-            <div class="progress-container">
-                <div class="progress-bar" style="width:${pct}%"></div>
-            </div>
+        <div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
+        <div class="progress-container">
+            <div class="progress-bar" style="width:${pct}%"></div>
         </div>`;
     });
 
@@ -294,23 +309,17 @@ function atualizarSemanal(){
     let html="";
 
     vendedores.forEach(nome=>{
-        let valor=semanaVendas[nome];
+        let valor=semanaAtual[nome];
         let pct=percentual(valor,META_SEMANAL);
 
         html+=`
-        <div style="margin-bottom:14px;">
-            <div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
-            <div class="progress-container">
-                <div class="progress-bar" style="width:${pct}%"></div>
-            </div>
+        <div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
+        <div class="progress-container">
+            <div class="progress-bar" style="width:${pct}%"></div>
         </div>`;
     });
 
     document.getElementById("performanceSemanal").innerHTML=html;
-
-    document.getElementById("lastJoao").innerText=formatar(ultimaSemana["João Gabriel"]);
-    document.getElementById("lastFabio").innerText=formatar(ultimaSemana["Fábio"]);
-    document.getElementById("lastJoabe").innerText=formatar(ultimaSemana["Joabe"]);
 }
 
 function atualizarRanking(){
@@ -319,17 +328,71 @@ function atualizarRanking(){
         .sort((a,b)=>b[1]-a[1]);
 
     let medals=["🥇","🥈","🥉"];
+
+    document.getElementById("ranking").innerHTML=
+        ranking.map((r,i)=>`
+            <div class="rank-item">
+                <span>${medals[i]} ${r[0]}</span>
+                <span>R$ ${formatar(r[1])}</span>
+            </div>
+        `).join("");
+}
+
+function atualizarHistorico4(){
     let html="";
 
-    ranking.forEach((item,index)=>{
+    historicoSemanas.forEach((sem,index)=>{
         html+=`
-        <div class="rank-item">
-            <span>${medals[index]} ${item[0]}</span>
-            <span>R$ ${formatar(item[1])}</span>
+        <div class="week-history">
+            <strong>Semana ${index+1}</strong><br>
+            Joabe: R$ ${formatar(sem["Joabe"])}<br>
+            João Gabriel: R$ ${formatar(sem["João Gabriel"])}<br>
+            Fábio: R$ ${formatar(sem["Fábio"])}
         </div>`;
     });
 
-    document.getElementById("ranking").innerHTML=html;
+    document.getElementById("historico4Semanas").innerHTML=html;
+}
+
+function gerarPDFDiario(){
+    const { jsPDF }=window.jspdf;
+    const pdf=new jsPDF();
+
+    pdf.setFontSize(24);
+    pdf.text("TAZZO",105,20,{align:"center"});
+    pdf.setFontSize(16);
+    pdf.text("Relatório Diário Premium",105,30,{align:"center"});
+    pdf.line(20,35,190,35);
+
+    let hoje=dataHojeBR();
+    let y=50;
+
+    vendasDiarias.filter(v=>v.data===hoje).forEach(item=>{
+        pdf.text(`${item.vendedor}: R$ ${formatar(item.valor)}`,20,y);
+        y+=12;
+    });
+
+    pdf.save("relatorio-diario-premium.pdf");
+}
+
+function gerarPDFMensal(){
+    const { jsPDF }=window.jspdf;
+    const pdf=new jsPDF();
+
+    pdf.setFontSize(24);
+    pdf.text("TAZZO",105,20,{align:"center"});
+    pdf.setFontSize(16);
+    pdf.text("Relatório Mensal Premium",105,30,{align:"center"});
+    pdf.line(20,35,190,35);
+
+    let y=50;
+
+    Object.entries(vendas).forEach(item=>{
+        pdf.text(`${item[0]}: R$ ${formatar(item[1])}`,20,y);
+        y+=12;
+    });
+
+    pdf.save("relatorio-mensal-premium.pdf");
 }
 
 function iniciarNovoMes(){
@@ -342,49 +405,19 @@ function iniciarNovoMes(){
         "Caio Henrique":0
     };
 
-    semanaVendas={
+    semanaAtual={
         "Joabe":0,
         "João Gabriel":0,
         "Fábio":0
     };
 
+    historicoSemanas=[];
     vendasDiarias=[];
 
     atualizarDashboard();
 }
 
-function gerarPDFDiario(){
-    const { jsPDF }=window.jspdf;
-    const pdf=new jsPDF();
-
-    pdf.text("Relatório Diário",20,20);
-
-    let y=40;
-
-    vendasDiarias.forEach(item=>{
-        pdf.text(`${item.vendedor}: R$ ${formatar(item.valor)}`,20,y);
-        y+=10;
-    });
-
-    pdf.save("relatorio-diario.pdf");
-}
-
-function gerarPDFMensal(){
-    const { jsPDF }=window.jspdf;
-    const pdf=new jsPDF();
-
-    pdf.text("Relatório Mensal",20,20);
-
-    let y=40;
-
-    Object.entries(vendas).forEach(item=>{
-        pdf.text(`${item[0]}: R$ ${formatar(item[1])}`,20,y);
-        y+=10;
-    });
-
-    pdf.save("relatorio-mensal.pdf");
-}
-
+setInterval(atualizarDashboard,1000);
 atualizarDashboard();
 </script>
 

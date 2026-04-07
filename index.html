@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO | Dashboard Premium V9</title>
+<title>TAZZO | Dashboard Premium V10</title>
 
 <link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
+
 body{
     min-height:100vh;
     background:linear-gradient(135deg,#180000,#8b0000,#1a0000);
@@ -19,12 +20,18 @@ body{
     color:#fff;
     font-family:Arial,sans-serif;
 }
+
 @keyframes bgMove{
     0%{background-position:0% 50%}
     50%{background-position:100% 50%}
     100%{background-position:0% 50%}
 }
-.container{max-width:480px;margin:auto}
+
+.container{
+    max-width:480px;
+    margin:auto;
+}
+
 .logo{
     text-align:center;
     font-size:42px;
@@ -35,6 +42,13 @@ body{
 }
 .white{color:#fff}
 .red{color:#ff0000;text-shadow:0 0 8px #ff0000}
+
+.data-brasilia{
+    text-align:center;
+    font-size:13px;
+    color:#ddd;
+    margin-bottom:16px;
+}
 
 .card{
     background:rgba(255,255,255,.08);
@@ -74,6 +88,7 @@ button{
 .progress-bar{
     height:100%;
     background:linear-gradient(90deg,#ff0000,#ff5c5c);
+    transition:.5s;
 }
 
 .rank-item{
@@ -81,17 +96,12 @@ button{
     justify-content:space-between;
     padding:8px 0;
 }
+
 .week-history{
     margin:10px 0;
     padding:10px;
     border-radius:12px;
     background:rgba(255,255,255,.05);
-}
-.data-brasilia{
-    font-size:13px;
-    color:#ddd;
-    text-align:center;
-    margin-bottom:16px;
 }
 </style>
 </head>
@@ -106,7 +116,7 @@ button{
 <div id="dataHora" class="data-brasilia"></div>
 
 <div class="card">
-<h3>Meta Geral</h3>
+<h3>Meta Geral da Loja</h3>
 <div>Total: R$ <span id="totalLoja">0,00</span></div>
 <div id="percentLoja">0%</div>
 <div class="progress-container">
@@ -125,7 +135,7 @@ button{
 <option>Caio Henrique</option>
 </select>
 
-<input type="text" inputmode="decimal" id="valorVendaDia" placeholder="Valor vendido">
+<input type="text" inputmode="decimal" id="valorVendaDia" placeholder="Valor vendido no dia">
 
 <button onclick="adicionarVendaDia()">Adicionar valor</button>
 </div>
@@ -160,27 +170,22 @@ button{
 const META_LOJA=210000;
 const META_MENSAL=70000;
 const META_SEMANAL=17500;
+
 const vendedores=["Joabe","João Gabriel","Fábio"];
 
-let vendas=JSON.parse(localStorage.getItem("tazzoDashboard"))||{
+const VALORES_BASE={
     "Joabe":16114.43,
     "João Gabriel":13077.33,
     "Fábio":15809.44,
     "Caio Henrique":2566.35
 };
 
-let semanaAtual=JSON.parse(localStorage.getItem("tazzoSemanaAtual"))||{
-    "Joabe":0,
-    "João Gabriel":0,
-    "Fábio":0
-};
-
-let historicoSemanas=JSON.parse(localStorage.getItem("tazzoHistorico4"))||[];
-
-let vendasDiarias=JSON.parse(localStorage.getItem("tazzoDiario"))||[];
-
 function agoraBrasilia(){
-    return new Date(new Date().toLocaleString("en-US",{timeZone:"America/Sao_Paulo"}));
+    return new Date(
+        new Date().toLocaleString("en-US",{
+            timeZone:"America/Sao_Paulo"
+        })
+    );
 }
 
 function dataHojeBR(){
@@ -192,6 +197,30 @@ function semanaAno(){
     const first=new Date(d.getFullYear(),0,1);
     return Math.ceil((((d-first)/86400000)+first.getDay()+1)/7);
 }
+
+let vendas=JSON.parse(localStorage.getItem("tazzoDashboard"));
+
+if(!vendas){
+    vendas={
+        ...VALORES_BASE,
+        "__baseAplicada":true
+    };
+}else if(!vendas.__baseAplicada){
+    vendas["Joabe"]=(vendas["Joabe"]||0)+VALORES_BASE["Joabe"];
+    vendas["João Gabriel"]=(vendas["João Gabriel"]||0)+VALORES_BASE["João Gabriel"];
+    vendas["Fábio"]=(vendas["Fábio"]||0)+VALORES_BASE["Fábio"];
+    vendas["Caio Henrique"]=(vendas["Caio Henrique"]||0)+VALORES_BASE["Caio Henrique"];
+    vendas.__baseAplicada=true;
+}
+
+let semanaAtual=JSON.parse(localStorage.getItem("tazzoSemanaAtual"))||{
+    "Joabe":0,
+    "João Gabriel":0,
+    "Fábio":0
+};
+
+let historicoSemanas=JSON.parse(localStorage.getItem("tazzoHistorico4"))||[];
+let vendasDiarias=JSON.parse(localStorage.getItem("tazzoDiario"))||[];
 
 let semanaControle=localStorage.getItem("tazzoSemanaNumero")||semanaAno();
 
@@ -221,7 +250,10 @@ function salvar(){
 }
 
 function formatar(v){
-    return v.toLocaleString("pt-BR",{minimumFractionDigits:2});
+    return v.toLocaleString("pt-BR",{
+        minimumFractionDigits:2,
+        maximumFractionDigits:2
+    });
 }
 
 function percentual(v,m){
@@ -235,13 +267,13 @@ function adicionarVendaDia(){
 
     let valor=parseFloat(
         document.getElementById("valorVendaDia").value
-        .replace(/\./g,"")
-        .replace(",",".")
+            .replace(/\./g,"")
+            .replace(",",".")
     );
 
     if(isNaN(valor)||valor<=0)return;
 
-    vendas[nome]+=valor;
+    vendas[nome]=(vendas[nome]||0)+valor;
 
     if(vendedores.includes(nome)){
         semanaAtual[nome]+=valor;
@@ -260,7 +292,6 @@ function adicionarVendaDia(){
 
 function atualizarDashboard(){
     verificarViradaSemana();
-
     atualizarDataHora();
     atualizarMeta();
     atualizarMensal();
@@ -276,7 +307,11 @@ function atualizarDataHora(){
 }
 
 function atualizarMeta(){
-    let total=Object.values(vendas).reduce((a,b)=>a+b,0);
+    let total=
+        (vendas["Joabe"]||0)+
+        (vendas["João Gabriel"]||0)+
+        (vendas["Fábio"]||0)+
+        (vendas["Caio Henrique"]||0);
 
     let pct=percentual(total,META_LOJA);
 
@@ -292,7 +327,7 @@ function atualizarMensal(){
     let html="";
 
     vendedores.forEach(nome=>{
-        let valor=vendas[nome];
+        let valor=vendas[nome]||0;
         let pct=percentual(valor,META_MENSAL);
 
         html+=`
@@ -309,7 +344,7 @@ function atualizarSemanal(){
     let html="";
 
     vendedores.forEach(nome=>{
-        let valor=semanaAtual[nome];
+        let valor=semanaAtual[nome]||0;
         let pct=percentual(valor,META_SEMANAL);
 
         html+=`
@@ -324,7 +359,7 @@ function atualizarSemanal(){
 
 function atualizarRanking(){
     let ranking=vendedores
-        .map(v=>[v,vendas[v]])
+        .map(v=>[v,vendas[v]||0])
         .sort((a,b)=>b[1]-a[1]);
 
     let medals=["🥇","🥈","🥉"];
@@ -345,9 +380,9 @@ function atualizarHistorico4(){
         html+=`
         <div class="week-history">
             <strong>Semana ${index+1}</strong><br>
-            Joabe: R$ ${formatar(sem["Joabe"])}<br>
-            João Gabriel: R$ ${formatar(sem["João Gabriel"])}<br>
-            Fábio: R$ ${formatar(sem["Fábio"])}
+            Joabe: R$ ${formatar(sem["Joabe"]||0)}<br>
+            João Gabriel: R$ ${formatar(sem["João Gabriel"]||0)}<br>
+            Fábio: R$ ${formatar(sem["Fábio"]||0)}
         </div>`;
     });
 
@@ -367,10 +402,12 @@ function gerarPDFDiario(){
     let hoje=dataHojeBR();
     let y=50;
 
-    vendasDiarias.filter(v=>v.data===hoje).forEach(item=>{
-        pdf.text(`${item.vendedor}: R$ ${formatar(item.valor)}`,20,y);
-        y+=12;
-    });
+    vendasDiarias
+        .filter(v=>v.data===hoje)
+        .forEach(item=>{
+            pdf.text(`${item.vendedor}: R$ ${formatar(item.valor)}`,20,y);
+            y+=12;
+        });
 
     pdf.save("relatorio-diario-premium.pdf");
 }
@@ -387,10 +424,12 @@ function gerarPDFMensal(){
 
     let y=50;
 
-    Object.entries(vendas).forEach(item=>{
-        pdf.text(`${item[0]}: R$ ${formatar(item[1])}`,20,y);
-        y+=12;
-    });
+    Object.entries(vendas)
+        .filter(([k])=>k!=="__baseAplicada")
+        .forEach(item=>{
+            pdf.text(`${item[0]}: R$ ${formatar(item[1])}`,20,y);
+            y+=12;
+        });
 
     pdf.save("relatorio-mensal-premium.pdf");
 }
@@ -402,7 +441,8 @@ function iniciarNovoMes(){
         "Joabe":0,
         "João Gabriel":0,
         "Fábio":0,
-        "Caio Henrique":0
+        "Caio Henrique":0,
+        "__baseAplicada":true
     };
 
     semanaAtual={

@@ -3,92 +3,125 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO | Dashboard Premium V11</title>
-
-<link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<title>TAZZO Dashboard Premium</title>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+@font-face {
+    font-family: 'BringRace';
+    src: url('BringRace.woff2') format('woff2');
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
 body{
+    font-family: Arial, sans-serif;
+    background: linear-gradient(180deg,#2b0000,#7a0000,#b30000);
     min-height:100vh;
-    background:linear-gradient(135deg,#180000,#8b0000,#1a0000);
-    background-size:400% 400%;
-    animation:bgMove 10s ease infinite;
+    color:white;
     padding:20px;
-    color:#fff;
-    font-family:Arial,sans-serif;
 }
-@keyframes bgMove{
-    0%{background-position:0% 50%}
-    50%{background-position:100% 50%}
-    100%{background-position:0% 50%}
+
+.container{
+    max-width:1200px;
+    margin:auto;
 }
-.container{max-width:480px;margin:auto}
+
 .logo{
+    font-family:'BringRace', Arial, sans-serif;
+    font-size:48px;
     text-align:center;
-    font-size:42px;
-    margin-bottom:18px;
+    margin-bottom:25px;
+    letter-spacing:3px;
 }
-.logo span{
-    font-family:'Bring Race',sans-serif !important;
+
+.logo .zz{
+    color:red;
 }
-.white{color:#fff}
-.red{color:#ff0000;text-shadow:0 0 8px #ff0000}
-.data-brasilia{
-    text-align:center;
-    font-size:13px;
-    color:#ddd;
-    margin-bottom:16px;
-}
+
 .card{
-    background:rgba(255,255,255,.08);
+    background: rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(12px);
     border-radius:20px;
     padding:20px;
-    margin-bottom:18px;
-    box-shadow:0 0 20px rgba(255,0,0,.18);
-    backdrop-filter:blur(12px);
+    margin-bottom:20px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.25);
 }
-button,input,select{
-    width:100%;
+
+.form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr auto;
+    gap:12px;
+}
+
+input,select,button{
     padding:14px;
-    margin-bottom:12px;
     border:none;
     border-radius:12px;
     font-size:16px;
 }
-input,select{
-    background:rgba(0,0,0,.35);
-    color:#fff;
-}
+
 button{
-    background:linear-gradient(90deg,#ff0000,#8b0000);
-    color:#fff;
+    background:red;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:hover{
+    transform:scale(1.02);
+}
+
+.cards-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:18px;
+}
+
+.barra{
+    width:100%;
+    height:12px;
+    background:rgba(255,255,255,0.1);
+    border-radius:30px;
+    overflow:hidden;
+    margin:10px 0;
+}
+
+.progresso{
+    height:100%;
+    background:linear-gradient(90deg,#ff0000,#ff4d4d);
+    transition:0.5s;
+}
+
+.valor{
+    font-size:26px;
     font-weight:bold;
 }
-.progress-container{
-    width:100%;
-    height:14px;
-    background:rgba(255,255,255,.08);
-    border-radius:10px;
-    overflow:hidden;
-    margin:8px 0;
+
+.sub{
+    opacity:0.9;
+    margin-top:6px;
 }
-.progress-bar{
-    height:100%;
-    background:linear-gradient(90deg,#ff0000,#ff5c5c);
-    transition:.5s;
-}
-.rank-item{
+
+.ranking-item{
     display:flex;
     justify-content:space-between;
-    padding:8px 0;
+    padding:10px 0;
+    border-bottom:1px solid rgba(255,255,255,0.08);
 }
-.week-history{
-    margin:10px 0;
-    padding:10px;
-    border-radius:12px;
-    background:rgba(255,255,255,.05);
+
+@media(max-width:768px){
+    .form-grid{
+        grid-template-columns:1fr;
+    }
+
+    .logo{
+        font-size:36px;
+    }
 }
 </style>
 </head>
@@ -96,243 +129,178 @@ button{
 
 <div class="container">
 
-<div class="logo">
-<span class="white">TA</span><span class="red">ZZ</span><span class="white">O</span>
-</div>
+    <div class="logo">
+        TA<span class="zz">ZZ</span>O
+    </div>
 
-<div id="dataHora" class="data-brasilia"></div>
+    <div class="card">
+        <div class="form-grid">
+            <select id="vendedor">
+                <option>Joabe</option>
+                <option>João Gabriel</option>
+                <option>Fábio</option>
+                <option>Caio Henrique</option>
+            </select>
 
-<div class="card">
-<h3>Meta Geral da Loja</h3>
-<div>Total: R$ <span id="totalLoja">0,00</span></div>
-<div id="percentLoja">0%</div>
-<div class="progress-container">
-<div class="progress-bar" id="barraLoja"></div>
-</div>
-<div id="metaInfo"></div>
-</div>
+            <input id="valorVendaDia" placeholder="Valor vendido no dia">
 
-<div class="card">
-<h3>Lançamento Diário</h3>
-<select id="vendedor">
-<option>Joabe</option>
-<option>João Gabriel</option>
-<option>Fábio</option>
-<option>Caio Henrique</option>
-</select>
-<input type="text" inputmode="decimal" id="valorVendaDia" placeholder="Valor vendido no dia">
-<button onclick="adicionarVendaDia()">Adicionar valor</button>
-</div>
+            <button onclick="adicionarVendaDia()">
+                Adicionar
+            </button>
+        </div>
+    </div>
 
-<div class="card">
-<h3>Performance Mensal</h3>
-<div id="performanceMensal"></div>
-</div>
-
-<div class="card">
-<h3>Performance Semanal</h3>
-<div id="performanceSemanal"></div>
-</div>
-
-<div class="card">
-<h3>Ranking</h3>
-<div id="ranking"></div>
-</div>
-
-<button onclick="gerarPDFDiario()">Relatório Diário</button>
-<button onclick="gerarPDFMensal()">Relatório Mensal</button>
-<button onclick="iniciarNovoMes()">Iniciar Novo Mês</button>
+    <div id="dashboardCards" class="cards-grid"></div>
 
 </div>
 
 <script>
-const META_LOJA=210000;
-const META_MENSAL=70000;
-const META_SEMANAL=17500;
-const vendedores=["Joabe","João Gabriel","Fábio"];
+const API_URL = "https://script.google.com/macros/s/AKfycbwKI2tgh4mqvRu-bkzH6Cmr0VpfyHMaFMDn9BtWMYFsOsigDMSp3Z-7veJO569mh78/exec";
 
-/* NOVOS VALORES CORRETOS */
-const VALORES_BASE={
-    "Fábio":15809.44,
-    "Joabe":16114.43,
-    "João Gabriel":11231.53,
-    "Caio Henrique":2566.35
+const metas = {
+    diaria: 2917,
+    semanal: 17500,
+    mensal: 70000,
+    loja: 210000
 };
 
-function agoraBrasilia(){
-    return new Date(new Date().toLocaleString("en-US",{timeZone:"America/Sao_Paulo"}));
-}
+const vendedores = ["Joabe","João Gabriel","Fábio"];
+const gerente = "Caio Henrique";
 
-function dataHojeBR(){
-    return agoraBrasilia().toLocaleDateString("pt-BR");
-}
+let vendas = [];
+let resumo = {};
 
-let vendas=JSON.parse(localStorage.getItem("tazzoDashboard"));
-
-if(!vendas){
-    vendas={...VALORES_BASE,"__baseAplicada":true};
-}else if(!vendas.__baseAplicada){
-    Object.keys(VALORES_BASE).forEach(k=>{
-        vendas[k]=(vendas[k]||0)+VALORES_BASE[k];
+function moeda(v){
+    return v.toLocaleString("pt-BR",{
+        style:"currency",
+        currency:"BRL"
     });
-    vendas.__baseAplicada=true;
 }
 
-let semanaAtual=JSON.parse(localStorage.getItem("tazzoSemanaAtual"))||{
-    "Joabe":0,
-    "João Gabriel":0,
-    "Fábio":0
-};
+async function carregarDashboard(){
+    try{
+        const response = await fetch(API_URL);
+        const dados = await response.json();
 
-let vendasDiarias=JSON.parse(localStorage.getItem("tazzoDiario"))||[];
+        vendas = dados.slice(1);
 
-function salvar(){
-    localStorage.setItem("tazzoDashboard",JSON.stringify(vendas));
-    localStorage.setItem("tazzoSemanaAtual",JSON.stringify(semanaAtual));
-    localStorage.setItem("tazzoDiario",JSON.stringify(vendasDiarias));
+        calcularResumo();
+        renderizarDashboard();
+
+    }catch(e){
+        console.error(e);
+    }
 }
 
-function formatar(v){
-    return v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+function calcularResumo(){
+    resumo = {};
+    let totalLoja = 0;
+
+    vendedores.forEach(v=>{
+        resumo[v] = {
+            semanal:0,
+            mensal:0
+        };
+    });
+
+    vendas.forEach(linha=>{
+        const nome = linha[0];
+        const valor = parseFloat(
+            String(linha[1]).replace(",",".")
+        ) || 0;
+
+        totalLoja += valor;
+
+        if(resumo[nome]){
+            resumo[nome].mensal += valor;
+            resumo[nome].semanal += valor;
+        }
+    });
+
+    resumo.totalLoja = totalLoja;
 }
 
-function percentual(v,m){
-    return ((v/m)*100).toFixed(1);
-}
+async function adicionarVendaDia(){
+    const vendedor = document.getElementById("vendedor").value;
 
-function adicionarVendaDia(){
-    let nome=document.getElementById("vendedor").value;
-    let valor=parseFloat(
-        document.getElementById("valorVendaDia").value
+    const valor = parseFloat(
+        document.getElementById("valorVendaDia")
+        .value
         .replace(/\./g,"")
         .replace(",",".")
     );
 
-    if(isNaN(valor)||valor<=0)return;
-
-    vendas[nome]=(vendas[nome]||0)+valor;
-
-    if(vendedores.includes(nome)){
-        semanaAtual[nome]+=valor;
+    if(!valor){
+        alert("Digite um valor válido");
+        return;
     }
 
-    vendasDiarias.push({
-        vendedor:nome,
-        valor,
-        data:dataHojeBR()
+    await fetch(API_URL,{
+        method:"POST",
+        body:JSON.stringify({
+            vendedor,
+            valor
+        })
     });
 
-    document.getElementById("valorVendaDia").value="";
+    document.getElementById("valorVendaDia").value = "";
 
-    atualizarDashboard();
+    carregarDashboard();
 }
 
-function atualizarDashboard(){
-    let total=
-        (vendas["Fábio"]||0)+
-        (vendas["Joabe"]||0)+
-        (vendas["João Gabriel"]||0)+
-        (vendas["Caio Henrique"]||0);
+function renderizarDashboard(){
+    let ranking = vendedores.map(v=>({
+        nome:v,
+        valor:resumo[v].mensal
+    }));
 
-    let pct=percentual(total,META_LOJA);
+    ranking.sort((a,b)=>b.valor-a.valor);
 
-    document.getElementById("dataHora").innerText=
-        agoraBrasilia().toLocaleString("pt-BR")+" • Brasília";
+    let html = "";
 
-    document.getElementById("totalLoja").innerText=formatar(total);
-    document.getElementById("percentLoja").innerText=pct+"%";
-    document.getElementById("barraLoja").style.width=pct+"%";
-    document.getElementById("metaInfo").innerHTML=
-        `Faltam R$ ${formatar(Math.max(0,META_LOJA-total))}`;
+    ranking.forEach((v,index)=>{
+        const pctMensal = (v.valor/metas.mensal)*100;
+        const pctSemanal = (v.valor/metas.semanal)*100;
 
-    atualizarMensal();
-    atualizarSemanal();
-    atualizarRanking();
+        html += `
+        <div class="card">
+            <h3>#${index+1} ${v.nome}</h3>
+            <div class="valor">${moeda(v.valor)}</div>
 
-    salvar();
-}
+            <div class="sub">Meta semanal</div>
+            <div class="barra">
+                <div class="progresso" style="width:${Math.min(pctSemanal,100)}%"></div>
+            </div>
 
-function atualizarMensal(){
-    let html="";
+            <div class="sub">Meta mensal</div>
+            <div class="barra">
+                <div class="progresso" style="width:${Math.min(pctMensal,100)}%"></div>
+            </div>
 
-    vendedores.forEach(nome=>{
-        let valor=vendas[nome]||0;
-        let pct=percentual(valor,META_MENSAL);
-
-        html+=`
-        <div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
-        <div class="progress-container">
-        <div class="progress-bar" style="width:${pct}%"></div>
-        </div>`;
+            <div>${pctMensal.toFixed(1)}%</div>
+        </div>
+        `;
     });
 
-    document.getElementById("performanceMensal").innerHTML=html;
+    const pctLoja = (resumo.totalLoja/metas.loja)*100;
+
+    html += `
+    <div class="card">
+        <h2>Meta Geral da Loja</h2>
+        <div class="valor">${moeda(resumo.totalLoja)}</div>
+        <div class="barra">
+            <div class="progresso" style="width:${Math.min(pctLoja,100)}%"></div>
+        </div>
+        <div>${pctLoja.toFixed(1)}%</div>
+    </div>
+    `;
+
+    document.getElementById("dashboardCards").innerHTML = html;
 }
 
-function atualizarSemanal(){
-    let html="";
+setInterval(carregarDashboard,10000);
 
-    vendedores.forEach(nome=>{
-        let valor=semanaAtual[nome]||0;
-        let pct=percentual(valor,META_SEMANAL);
-
-        html+=`
-        <div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
-        <div class="progress-container">
-        <div class="progress-bar" style="width:${pct}%"></div>
-        </div>`;
-    });
-
-    document.getElementById("performanceSemanal").innerHTML=html;
-}
-
-function atualizarRanking(){
-    let ranking=vendedores
-        .map(v=>[v,vendas[v]||0])
-        .sort((a,b)=>b[1]-a[1]);
-
-    let medals=["🥇","🥈","🥉"];
-
-    document.getElementById("ranking").innerHTML=
-        ranking.map((r,i)=>`
-        <div class="rank-item">
-        <span>${medals[i]} ${r[0]}</span>
-        <span>R$ ${formatar(r[1])}</span>
-        </div>`).join("");
-}
-
-function gerarPDFDiario(){
-    alert("Relatório premium mantido");
-}
-
-function gerarPDFMensal(){
-    alert("Relatório premium mantido");
-}
-
-function iniciarNovoMes(){
-    if(!confirm("Deseja iniciar novo mês?")) return;
-
-    vendas={
-        "Fábio":0,
-        "Joabe":0,
-        "João Gabriel":0,
-        "Caio Henrique":0,
-        "__baseAplicada":true
-    };
-
-    semanaAtual={
-        "Joabe":0,
-        "João Gabriel":0,
-        "Fábio":0
-    };
-
-    vendasDiarias=[];
-
-    atualizarDashboard();
-}
-
-setInterval(atualizarDashboard,1000);
-atualizarDashboard();
+window.onload = carregarDashboard;
 </script>
 
 </body>

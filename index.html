@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO | Dashboard Premium V13</title>
+<title>TAZZO | Dashboard Premium V13.1</title>
 
 <link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -54,6 +54,7 @@ button{
     background:linear-gradient(90deg,#ff0000,#8b0000);
     color:#fff;
     font-weight:bold;
+    cursor:pointer;
 }
 .progress-container{
     width:100%;
@@ -240,38 +241,49 @@ async function carregarPlanilha(){
     verificarMetaBatida();
 }
 
-async function editarLancamento(row,valorAtual,dataAtual){
-    const dataOriginal=new Date(dataAtual);
-    const hoje=agoraBrasilia();
+async function adicionarVendaDia(){
+    let nome = document.getElementById("vendedor").value;
 
-    const diffDias=Math.floor((hoje-dataOriginal)/(1000*60*60*24));
+    let valorTexto = document.getElementById("valorVendaDia").value.trim();
 
-    if(diffDias>7){
-        alert("Somente lançamentos dos últimos 7 dias podem ser editados.");
+    let valor = parseFloat(
+        valorTexto
+            .replace(/\./g,"")
+            .replace(",",".")
+    );
+
+    if(isNaN(valor) || valor <= 0){
+        alert("Digite um valor válido.");
         return;
     }
 
-    let novoValor=prompt("Novo valor:",valorAtual);
-    if(!novoValor)return;
+    try{
+        const response = await fetch(API_URL,{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                action:"add",
+                vendedor:nome,
+                valor:valor
+            })
+        });
 
-    let novaData=prompt("Nova data (AAAA-MM-DD):", dataAtual.slice(0,10));
-    if(!novaData)return;
+        const resultado = await response.json();
 
-    novoValor=parseFloat(
-        novoValor.replace(/\./g,"").replace(",",".")
-    );
+        if(resultado.status === "ok"){
+            document.getElementById("valorVendaDia").value = "";
+            await carregarPlanilha();
+            alert("Venda adicionada com sucesso.");
+        }else{
+            alert("Erro ao adicionar venda.");
+        }
 
-    await fetch(API_URL,{
-        method:"POST",
-        body:JSON.stringify({
-            action:"editFull",
-            row,
-            valor:novoValor,
-            data:novaData
-        })
-    });
-
-    carregarPlanilha();
+    }catch(error){
+        console.error("Erro ao adicionar venda:", error);
+        alert("Erro na conexão com a planilha.");
+    }
 }
 
 function renderLancamentos(){
@@ -282,9 +294,6 @@ function renderLancamentos(){
             ${item.vendedor} — R$ ${formatar(item.valor)}
             <br>
             <small>${item.data}</small>
-            <br><br>
-            <button onclick="editarLancamento(${item.row},${item.valor},'${item.data}')">Editar</button>
-            <button onclick="excluirLancamento(${item.row})">Excluir</button>
         </div>
     `).join("");
 }

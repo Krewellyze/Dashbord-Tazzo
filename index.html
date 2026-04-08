@@ -135,7 +135,6 @@ button{
 
 <button onclick="gerarPDFDiario()">Relatório Diário</button>
 <button onclick="gerarPDFMensal()">Relatório Mensal</button>
-<button onclick="iniciarNovoMes()">Iniciar Novo Mês</button>
 
 </div>
 
@@ -147,27 +146,11 @@ const META_MENSAL=70000;
 const META_SEMANAL=17500;
 const vendedores=["Joabe","João Gabriel","Fábio"];
 
-let vendas={
-    "Fábio":0,
-    "Joabe":0,
-    "João Gabriel":0,
-    "Caio Henrique":0
-};
-
-let semanaAtual={
-    "Joabe":0,
-    "João Gabriel":0,
-    "Fábio":0
-};
-
-let vendasDiarias=[];
+let vendas={};
+let semanaAtual={};
 
 function agoraBrasilia(){
     return new Date(new Date().toLocaleString("en-US",{timeZone:"America/Sao_Paulo"}));
-}
-
-function dataHojeBR(){
-    return agoraBrasilia().toLocaleDateString("pt-BR");
 }
 
 function formatar(v){
@@ -179,6 +162,19 @@ function formatar(v){
 
 function percentual(v,m){
     return ((v/m)*100).toFixed(1);
+}
+
+function inicioSemanaBrasilia(){
+    const hoje=agoraBrasilia();
+    const inicio=new Date(hoje);
+    const dia=hoje.getDay();
+
+    const diff = dia===0 ? 6 : dia-1;
+
+    inicio.setDate(hoje.getDate()-diff);
+    inicio.setHours(0,0,0,0);
+
+    return inicio;
 }
 
 async function carregarPlanilha(){
@@ -199,29 +195,34 @@ async function carregarPlanilha(){
             "Fábio":0
         };
 
-        vendasDiarias=[];
+        const inicioSemana=inicioSemanaBrasilia();
 
         dados.slice(1).forEach(linha=>{
             const vendedor=linha[0];
-            const valor=parseFloat(String(linha[1]).replace(",", ".")) || 0;
+            const valor=parseFloat(
+                String(linha[1]).replace(",",".")
+            )||0;
+
+            const dataRegistro=linha[2];
 
             vendas[vendedor]=(vendas[vendedor]||0)+valor;
 
-            if(vendedores.includes(vendedor)){
-                semanaAtual[vendedor]+=valor;
-            }
+            if(
+                vendedores.includes(vendedor) &&
+                dataRegistro!=="semana passada"
+            ){
+                const dataVenda=new Date(dataRegistro);
 
-            vendasDiarias.push({
-                vendedor,
-                valor,
-                data:linha[2]
-            });
+                if(!isNaN(dataVenda) && dataVenda>=inicioSemana){
+                    semanaAtual[vendedor]+=valor;
+                }
+            }
         });
 
         atualizarDashboard();
 
     }catch(error){
-        console.error("Erro ao carregar planilha:",error);
+        console.error(error);
     }
 }
 
@@ -328,10 +329,6 @@ function gerarPDFDiario(){
 
 function gerarPDFMensal(){
     alert("Relatório premium mantido");
-}
-
-function iniciarNovoMes(){
-    alert("Para iniciar novo mês, limpe os registros da planilha.");
 }
 
 setInterval(carregarPlanilha,10000);

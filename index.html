@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO | Dashboard Premium V12</title>
+<title>TAZZO | Dashboard Premium V13</title>
 
 <link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -157,7 +157,6 @@ let lancamentos=[];
 
 function abrirLoginGerente(){
     const senha=prompt("Digite a senha do gerente:");
-
     if(senha===SENHA_GERENTE){
         localStorage.setItem("gerenteLogado","true");
         mostrarPainelGerente();
@@ -207,19 +206,8 @@ async function carregarPlanilha(){
     const response=await fetch(API_URL);
     const dados=await response.json();
 
-    vendas={
-        "Fábio":0,
-        "Joabe":0,
-        "João Gabriel":0,
-        "Caio Henrique":0
-    };
-
-    semanaAtual={
-        "Joabe":0,
-        "João Gabriel":0,
-        "Fábio":0
-    };
-
+    vendas={"Fábio":0,"Joabe":0,"João Gabriel":0,"Caio Henrique":0};
+    semanaAtual={"Joabe":0,"João Gabriel":0,"Fábio":0};
     lancamentos=[];
 
     const inicioSemana=inicioSemanaBrasilia();
@@ -231,9 +219,10 @@ async function carregarPlanilha(){
 
         vendas[vendedor]=(vendas[vendedor]||0)+valor;
 
-        if(vendedores.includes(vendedor) && dataRegistro!=="semana passada"){
-            const dataVenda=new Date(dataRegistro);
-            if(!isNaN(dataVenda) && dataVenda>=inicioSemana){
+        const dataVenda=new Date(dataRegistro);
+
+        if(vendedores.includes(vendedor) && !isNaN(dataVenda)){
+            if(dataVenda>=inicioSemana){
                 semanaAtual[vendedor]+=valor;
             }
         }
@@ -251,46 +240,22 @@ async function carregarPlanilha(){
     verificarMetaBatida();
 }
 
-async function adicionarVendaDia(){
-    let nome=document.getElementById("vendedor").value;
+async function editarLancamento(row,valorAtual,dataAtual){
+    const dataOriginal=new Date(dataAtual);
+    const hoje=agoraBrasilia();
 
-    let valor=parseFloat(
-        document.getElementById("valorVendaDia").value
-        .replace(/\./g,"")
-        .replace(",",".")
-    );
+    const diffDias=Math.floor((hoje-dataOriginal)/(1000*60*60*24));
 
-    if(isNaN(valor)||valor<=0)return;
+    if(diffDias>7){
+        alert("Somente lançamentos dos últimos 7 dias podem ser editados.");
+        return;
+    }
 
-    await fetch(API_URL,{
-        method:"POST",
-        body:JSON.stringify({
-            action:"add",
-            vendedor:nome,
-            valor:valor
-        })
-    });
-
-    document.getElementById("valorVendaDia").value="";
-    carregarPlanilha();
-}
-
-async function excluirLancamento(row){
-    await fetch(API_URL,{
-        method:"POST",
-        body:JSON.stringify({
-            action:"delete",
-            row
-        })
-    });
-
-    carregarPlanilha();
-}
-
-async function editarLancamento(row,valorAtual){
     let novoValor=prompt("Novo valor:",valorAtual);
-
     if(!novoValor)return;
+
+    let novaData=prompt("Nova data (AAAA-MM-DD):", dataAtual.slice(0,10));
+    if(!novaData)return;
 
     novoValor=parseFloat(
         novoValor.replace(/\./g,"").replace(",",".")
@@ -299,9 +264,10 @@ async function editarLancamento(row,valorAtual){
     await fetch(API_URL,{
         method:"POST",
         body:JSON.stringify({
-            action:"edit",
+            action:"editFull",
             row,
-            valor:novoValor
+            valor:novoValor,
+            data:novaData
         })
     });
 
@@ -311,24 +277,20 @@ async function editarLancamento(row,valorAtual){
 function renderLancamentos(){
     const lista=document.getElementById("listaLancamentos");
 
-    lista.innerHTML=lancamentos.slice(-5).reverse().map(item=>`
+    lista.innerHTML=lancamentos.slice(-7).reverse().map(item=>`
         <div class="lancamento-item">
             ${item.vendedor} — R$ ${formatar(item.valor)}
             <br>
             <small>${item.data}</small>
             <br><br>
-            <button onclick="editarLancamento(${item.row},${item.valor})">Editar</button>
+            <button onclick="editarLancamento(${item.row},${item.valor},'${item.data}')">Editar</button>
             <button onclick="excluirLancamento(${item.row})">Excluir</button>
         </div>
     `).join("");
 }
 
 function verificarMetaBatida(){
-    const total=
-        (vendas["Fábio"]||0)+
-        (vendas["Joabe"]||0)+
-        (vendas["João Gabriel"]||0)+
-        (vendas["Caio Henrique"]||0);
+    const total=(vendas["Fábio"]||0)+(vendas["Joabe"]||0)+(vendas["João Gabriel"]||0)+(vendas["Caio Henrique"]||0);
 
     if(total>=META_LOJA && !localStorage.getItem("metaBatida")){
         alert("🎉 Meta geral da loja batida!");
@@ -337,11 +299,7 @@ function verificarMetaBatida(){
 }
 
 function atualizarDashboard(){
-    let total=
-        (vendas["Fábio"]||0)+
-        (vendas["Joabe"]||0)+
-        (vendas["João Gabriel"]||0)+
-        (vendas["Caio Henrique"]||0);
+    let total=(vendas["Fábio"]||0)+(vendas["Joabe"]||0)+(vendas["João Gabriel"]||0)+(vendas["Caio Henrique"]||0);
 
     let pct=percentual(total,META_LOJA);
 

@@ -84,6 +84,9 @@ button{
     justify-content:space-between;
     padding:8px 0;
 }
+#painelGerente{
+    display:none;
+}
 </style>
 </head>
 <body>
@@ -107,18 +110,6 @@ button{
 </div>
 
 <div class="card">
-<h3>Lançamento Diário</h3>
-<select id="vendedor">
-<option>Joabe</option>
-<option>João Gabriel</option>
-<option>Fábio</option>
-<option>Caio Henrique</option>
-</select>
-<input type="text" inputmode="decimal" id="valorVendaDia" placeholder="Valor vendido no dia">
-<button onclick="adicionarVendaDia()">Adicionar valor</button>
-</div>
-
-<div class="card">
 <h3>Performance Mensal</h3>
 <div id="performanceMensal"></div>
 </div>
@@ -133,12 +124,29 @@ button{
 <div id="ranking"></div>
 </div>
 
+<button onclick="abrirLoginGerente()">Acesso Gerente</button>
+
+<div id="painelGerente" class="card">
+<h3>Painel do Gerente</h3>
+
+<select id="vendedor">
+<option>Joabe</option>
+<option>João Gabriel</option>
+<option>Fábio</option>
+<option>Caio Henrique</option>
+</select>
+
+<input type="text" inputmode="decimal" id="valorVendaDia" placeholder="Valor vendido no dia">
+
+<button onclick="adicionarVendaDia()">Adicionar valor</button>
 <button onclick="gerarPDFDiario()">Relatório Diário</button>
 <button onclick="gerarPDFMensal()">Relatório Mensal</button>
+</div>
 
 </div>
 
 <script>
+const SENHA_GERENTE="gerentazzo";
 const API_URL="https://script.google.com/macros/s/AKfycbwKI2tgh4mqvRu-bkzH6Cmr0VpfyHMaFMDn9BtWMYFsOsigDMSp3Z-7veJO569mh78/exec";
 
 const META_LOJA=210000;
@@ -148,6 +156,17 @@ const vendedores=["Joabe","João Gabriel","Fábio"];
 
 let vendas={};
 let semanaAtual={};
+
+function abrirLoginGerente(){
+    const senha=prompt("Digite a senha do gerente:");
+
+    if(senha===SENHA_GERENTE){
+        document.getElementById("painelGerente").style.display="block";
+        alert("Acesso liberado");
+    }else{
+        alert("Senha incorreta");
+    }
+}
 
 function agoraBrasilia(){
     return new Date(new Date().toLocaleString("en-US",{timeZone:"America/Sao_Paulo"}));
@@ -168,12 +187,9 @@ function inicioSemanaBrasilia(){
     const hoje=agoraBrasilia();
     const inicio=new Date(hoje);
     const dia=hoje.getDay();
-
     const diff = dia===0 ? 6 : dia-1;
-
     inicio.setDate(hoje.getDate()-diff);
     inicio.setHours(0,0,0,0);
-
     return inicio;
 }
 
@@ -199,18 +215,12 @@ async function carregarPlanilha(){
 
         dados.slice(1).forEach(linha=>{
             const vendedor=linha[0];
-            const valor=parseFloat(
-                String(linha[1]).replace(",",".")
-            )||0;
-
+            const valor=parseFloat(String(linha[1]).replace(",", "."))||0;
             const dataRegistro=linha[2];
 
             vendas[vendedor]=(vendas[vendedor]||0)+valor;
 
-            if(
-                vendedores.includes(vendedor) &&
-                dataRegistro!=="semana passada"
-            ){
+            if(vendedores.includes(vendedor) && dataRegistro!=="semana passada"){
                 const dataVenda=new Date(dataRegistro);
 
                 if(!isNaN(dataVenda) && dataVenda>=inicioSemana){
@@ -246,7 +256,6 @@ async function adicionarVendaDia(){
     });
 
     document.getElementById("valorVendaDia").value="";
-
     carregarPlanilha();
 }
 

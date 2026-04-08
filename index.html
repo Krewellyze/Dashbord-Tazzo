@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO | Dashboard Premium V13.1</title>
+<title>TAZZO | Dashboard Premium V13.2</title>
 
 <link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -260,10 +260,7 @@ async function adicionarVendaDia(){
     try{
         const response = await fetch(API_URL,{
             method:"POST",
-            headers:{
-                "Content-Type":"application/json"
-            },
-            body:JSON.stringify({
+            body: JSON.stringify({
                 action:"add",
                 vendedor:nome,
                 valor:valor
@@ -281,8 +278,8 @@ async function adicionarVendaDia(){
         }
 
     }catch(error){
-        console.error("Erro ao adicionar venda:", error);
-        alert("Erro na conexão com a planilha.");
+        console.error(error);
+        alert("Erro de conexão com a planilha.");
     }
 }
 

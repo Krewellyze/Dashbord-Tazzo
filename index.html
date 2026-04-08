@@ -3,125 +3,86 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO Dashboard Premium</title>
+<title>TAZZO | Dashboard Premium V11</title>
+
+<link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-@font-face {
-    font-family: 'BringRace';
-    src: url('BringRace.woff2') format('woff2');
-}
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
-
+*{margin:0;padding:0;box-sizing:border-box}
 body{
-    font-family: Arial, sans-serif;
-    background: linear-gradient(180deg,#2b0000,#7a0000,#b30000);
     min-height:100vh;
-    color:white;
+    background:linear-gradient(135deg,#180000,#8b0000,#1a0000);
+    background-size:400% 400%;
+    animation:bgMove 10s ease infinite;
     padding:20px;
+    color:#fff;
+    font-family:Arial,sans-serif;
 }
-
-.container{
-    max-width:1200px;
-    margin:auto;
+@keyframes bgMove{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
 }
-
+.container{max-width:480px;margin:auto}
 .logo{
-    font-family:'BringRace', Arial, sans-serif;
-    font-size:48px;
     text-align:center;
-    margin-bottom:25px;
-    letter-spacing:3px;
+    font-size:42px;
+    margin-bottom:18px;
 }
-
-.logo .zz{
-    color:red;
+.logo span{
+    font-family:'Bring Race',sans-serif !important;
 }
-
+.white{color:#fff}
+.red{color:#ff0000;text-shadow:0 0 8px #ff0000}
+.data-brasilia{
+    text-align:center;
+    font-size:13px;
+    color:#ddd;
+    margin-bottom:16px;
+}
 .card{
-    background: rgba(255,255,255,0.08);
-    border:1px solid rgba(255,255,255,0.15);
-    backdrop-filter: blur(12px);
+    background:rgba(255,255,255,.08);
     border-radius:20px;
     padding:20px;
-    margin-bottom:20px;
-    box-shadow:0 8px 30px rgba(0,0,0,0.25);
+    margin-bottom:18px;
+    box-shadow:0 0 20px rgba(255,0,0,.18);
+    backdrop-filter:blur(12px);
 }
-
-.form-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr auto;
-    gap:12px;
-}
-
-input,select,button{
+button,input,select{
+    width:100%;
     padding:14px;
+    margin-bottom:12px;
     border:none;
     border-radius:12px;
     font-size:16px;
 }
-
+input,select{
+    background:rgba(0,0,0,.35);
+    color:#fff;
+}
 button{
-    background:red;
-    color:white;
+    background:linear-gradient(90deg,#ff0000,#8b0000);
+    color:#fff;
     font-weight:bold;
-    cursor:pointer;
 }
-
-button:hover{
-    transform:scale(1.02);
-}
-
-.cards-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-    gap:18px;
-}
-
-.barra{
+.progress-container{
     width:100%;
-    height:12px;
-    background:rgba(255,255,255,0.1);
-    border-radius:30px;
+    height:14px;
+    background:rgba(255,255,255,.08);
+    border-radius:10px;
     overflow:hidden;
-    margin:10px 0;
+    margin:8px 0;
 }
-
-.progresso{
+.progress-bar{
     height:100%;
-    background:linear-gradient(90deg,#ff0000,#ff4d4d);
-    transition:0.5s;
+    background:linear-gradient(90deg,#ff0000,#ff5c5c);
+    transition:.5s;
 }
-
-.valor{
-    font-size:26px;
-    font-weight:bold;
-}
-
-.sub{
-    opacity:0.9;
-    margin-top:6px;
-}
-
-.ranking-item{
+.rank-item{
     display:flex;
     justify-content:space-between;
-    padding:10px 0;
-    border-bottom:1px solid rgba(255,255,255,0.08);
-}
-
-@media(max-width:768px){
-    .form-grid{
-        grid-template-columns:1fr;
-    }
-
-    .logo{
-        font-size:36px;
-    }
+    padding:8px 0;
 }
 </style>
 </head>
@@ -129,178 +90,252 @@ button:hover{
 
 <div class="container">
 
-    <div class="logo">
-        TA<span class="zz">ZZ</span>O
-    </div>
+<div class="logo">
+<span class="white">TA</span><span class="red">ZZ</span><span class="white">O</span>
+</div>
 
-    <div class="card">
-        <div class="form-grid">
-            <select id="vendedor">
-                <option>Joabe</option>
-                <option>João Gabriel</option>
-                <option>Fábio</option>
-                <option>Caio Henrique</option>
-            </select>
+<div id="dataHora" class="data-brasilia"></div>
 
-            <input id="valorVendaDia" placeholder="Valor vendido no dia">
+<div class="card">
+<h3>Meta Geral da Loja</h3>
+<div>Total: R$ <span id="totalLoja">0,00</span></div>
+<div id="percentLoja">0%</div>
+<div class="progress-container">
+<div class="progress-bar" id="barraLoja"></div>
+</div>
+<div id="metaInfo"></div>
+</div>
 
-            <button onclick="adicionarVendaDia()">
-                Adicionar
-            </button>
-        </div>
-    </div>
+<div class="card">
+<h3>Lançamento Diário</h3>
+<select id="vendedor">
+<option>Joabe</option>
+<option>João Gabriel</option>
+<option>Fábio</option>
+<option>Caio Henrique</option>
+</select>
+<input type="text" inputmode="decimal" id="valorVendaDia" placeholder="Valor vendido no dia">
+<button onclick="adicionarVendaDia()">Adicionar valor</button>
+</div>
 
-    <div id="dashboardCards" class="cards-grid"></div>
+<div class="card">
+<h3>Performance Mensal</h3>
+<div id="performanceMensal"></div>
+</div>
+
+<div class="card">
+<h3>Performance Semanal</h3>
+<div id="performanceSemanal"></div>
+</div>
+
+<div class="card">
+<h3>Ranking</h3>
+<div id="ranking"></div>
+</div>
+
+<button onclick="gerarPDFDiario()">Relatório Diário</button>
+<button onclick="gerarPDFMensal()">Relatório Mensal</button>
+<button onclick="iniciarNovoMes()">Iniciar Novo Mês</button>
 
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbwKI2tgh4mqvRu-bkzH6Cmr0VpfyHMaFMDn9BtWMYFsOsigDMSp3Z-7veJO569mh78/exec";
+const API_URL="https://script.google.com/macros/s/AKfycbwKI2tgh4mqvRu-bkzH6Cmr0VpfyHMaFMDn9BtWMYFsOsigDMSp3Z-7veJO569mh78/exec";
 
-const metas = {
-    diaria: 2917,
-    semanal: 17500,
-    mensal: 70000,
-    loja: 210000
+const META_LOJA=210000;
+const META_MENSAL=70000;
+const META_SEMANAL=17500;
+const vendedores=["Joabe","João Gabriel","Fábio"];
+
+let vendas={
+    "Fábio":0,
+    "Joabe":0,
+    "João Gabriel":0,
+    "Caio Henrique":0
 };
 
-const vendedores = ["Joabe","João Gabriel","Fábio"];
-const gerente = "Caio Henrique";
+let semanaAtual={
+    "Joabe":0,
+    "João Gabriel":0,
+    "Fábio":0
+};
 
-let vendas = [];
-let resumo = {};
+let vendasDiarias=[];
 
-function moeda(v){
-    return v.toLocaleString("pt-BR",{
-        style:"currency",
-        currency:"BRL"
+function agoraBrasilia(){
+    return new Date(new Date().toLocaleString("en-US",{timeZone:"America/Sao_Paulo"}));
+}
+
+function dataHojeBR(){
+    return agoraBrasilia().toLocaleDateString("pt-BR");
+}
+
+function formatar(v){
+    return Number(v).toLocaleString("pt-BR",{
+        minimumFractionDigits:2,
+        maximumFractionDigits:2
     });
 }
 
-async function carregarDashboard(){
+function percentual(v,m){
+    return ((v/m)*100).toFixed(1);
+}
+
+async function carregarPlanilha(){
     try{
-        const response = await fetch(API_URL);
-        const dados = await response.json();
+        const response=await fetch(API_URL);
+        const dados=await response.json();
 
-        vendas = dados.slice(1);
+        vendas={
+            "Fábio":0,
+            "Joabe":0,
+            "João Gabriel":0,
+            "Caio Henrique":0
+        };
 
-        calcularResumo();
-        renderizarDashboard();
+        semanaAtual={
+            "Joabe":0,
+            "João Gabriel":0,
+            "Fábio":0
+        };
 
-    }catch(e){
-        console.error(e);
+        vendasDiarias=[];
+
+        dados.slice(1).forEach(linha=>{
+            const vendedor=linha[0];
+            const valor=parseFloat(String(linha[1]).replace(",", ".")) || 0;
+
+            vendas[vendedor]=(vendas[vendedor]||0)+valor;
+
+            if(vendedores.includes(vendedor)){
+                semanaAtual[vendedor]+=valor;
+            }
+
+            vendasDiarias.push({
+                vendedor,
+                valor,
+                data:linha[2]
+            });
+        });
+
+        atualizarDashboard();
+
+    }catch(error){
+        console.error("Erro ao carregar planilha:",error);
     }
 }
 
-function calcularResumo(){
-    resumo = {};
-    let totalLoja = 0;
-
-    vendedores.forEach(v=>{
-        resumo[v] = {
-            semanal:0,
-            mensal:0
-        };
-    });
-
-    vendas.forEach(linha=>{
-        const nome = linha[0];
-        const valor = parseFloat(
-            String(linha[1]).replace(",",".")
-        ) || 0;
-
-        totalLoja += valor;
-
-        if(resumo[nome]){
-            resumo[nome].mensal += valor;
-            resumo[nome].semanal += valor;
-        }
-    });
-
-    resumo.totalLoja = totalLoja;
-}
-
 async function adicionarVendaDia(){
-    const vendedor = document.getElementById("vendedor").value;
+    let nome=document.getElementById("vendedor").value;
 
-    const valor = parseFloat(
-        document.getElementById("valorVendaDia")
-        .value
+    let valor=parseFloat(
+        document.getElementById("valorVendaDia").value
         .replace(/\./g,"")
         .replace(",",".")
     );
 
-    if(!valor){
-        alert("Digite um valor válido");
-        return;
-    }
+    if(isNaN(valor)||valor<=0)return;
 
     await fetch(API_URL,{
         method:"POST",
         body:JSON.stringify({
-            vendedor,
-            valor
+            vendedor:nome,
+            valor:valor
         })
     });
 
-    document.getElementById("valorVendaDia").value = "";
+    document.getElementById("valorVendaDia").value="";
 
-    carregarDashboard();
+    carregarPlanilha();
 }
 
-function renderizarDashboard(){
-    let ranking = vendedores.map(v=>({
-        nome:v,
-        valor:resumo[v].mensal
-    }));
+function atualizarDashboard(){
+    let total=
+        (vendas["Fábio"]||0)+
+        (vendas["Joabe"]||0)+
+        (vendas["João Gabriel"]||0)+
+        (vendas["Caio Henrique"]||0);
 
-    ranking.sort((a,b)=>b.valor-a.valor);
+    let pct=percentual(total,META_LOJA);
 
-    let html = "";
+    document.getElementById("dataHora").innerText=
+        agoraBrasilia().toLocaleString("pt-BR")+" • Brasília";
 
-    ranking.forEach((v,index)=>{
-        const pctMensal = (v.valor/metas.mensal)*100;
-        const pctSemanal = (v.valor/metas.semanal)*100;
+    document.getElementById("totalLoja").innerText=formatar(total);
+    document.getElementById("percentLoja").innerText=pct+"%";
+    document.getElementById("barraLoja").style.width=Math.min(pct,100)+"%";
 
-        html += `
-        <div class="card">
-            <h3>#${index+1} ${v.nome}</h3>
-            <div class="valor">${moeda(v.valor)}</div>
+    document.getElementById("metaInfo").innerHTML=
+        `Faltam R$ ${formatar(Math.max(0,META_LOJA-total))}`;
 
-            <div class="sub">Meta semanal</div>
-            <div class="barra">
-                <div class="progresso" style="width:${Math.min(pctSemanal,100)}%"></div>
-            </div>
+    atualizarMensal();
+    atualizarSemanal();
+    atualizarRanking();
+}
 
-            <div class="sub">Meta mensal</div>
-            <div class="barra">
-                <div class="progresso" style="width:${Math.min(pctMensal,100)}%"></div>
-            </div>
+function atualizarMensal(){
+    let html="";
 
-            <div>${pctMensal.toFixed(1)}%</div>
-        </div>
-        `;
+    vendedores.forEach(nome=>{
+        let valor=vendas[nome]||0;
+        let pct=percentual(valor,META_MENSAL);
+
+        html+=`
+        <div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
+        <div class="progress-container">
+        <div class="progress-bar" style="width:${Math.min(pct,100)}%"></div>
+        </div>`;
     });
 
-    const pctLoja = (resumo.totalLoja/metas.loja)*100;
-
-    html += `
-    <div class="card">
-        <h2>Meta Geral da Loja</h2>
-        <div class="valor">${moeda(resumo.totalLoja)}</div>
-        <div class="barra">
-            <div class="progresso" style="width:${Math.min(pctLoja,100)}%"></div>
-        </div>
-        <div>${pctLoja.toFixed(1)}%</div>
-    </div>
-    `;
-
-    document.getElementById("dashboardCards").innerHTML = html;
+    document.getElementById("performanceMensal").innerHTML=html;
 }
 
-setInterval(carregarDashboard,10000);
+function atualizarSemanal(){
+    let html="";
 
-window.onload = carregarDashboard;
+    vendedores.forEach(nome=>{
+        let valor=semanaAtual[nome]||0;
+        let pct=percentual(valor,META_SEMANAL);
+
+        html+=`
+        <div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
+        <div class="progress-container">
+        <div class="progress-bar" style="width:${Math.min(pct,100)}%"></div>
+        </div>`;
+    });
+
+    document.getElementById("performanceSemanal").innerHTML=html;
+}
+
+function atualizarRanking(){
+    let ranking=vendedores
+        .map(v=>[v,vendas[v]||0])
+        .sort((a,b)=>b[1]-a[1]);
+
+    let medals=["🥇","🥈","🥉"];
+
+    document.getElementById("ranking").innerHTML=
+        ranking.map((r,i)=>`
+        <div class="rank-item">
+        <span>${medals[i]} ${r[0]}</span>
+        <span>R$ ${formatar(r[1])}</span>
+        </div>`).join("");
+}
+
+function gerarPDFDiario(){
+    alert("Relatório premium mantido");
+}
+
+function gerarPDFMensal(){
+    alert("Relatório premium mantido");
+}
+
+function iniciarNovoMes(){
+    alert("Para iniciar novo mês, limpe os registros da planilha.");
+}
+
+setInterval(carregarPlanilha,10000);
+carregarPlanilha();
 </script>
 
 </body>

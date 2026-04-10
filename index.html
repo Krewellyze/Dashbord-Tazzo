@@ -160,6 +160,8 @@ Corrigir valor do vendedor
 <h3>Últimos lançamentos</h3>
 <div id="listaLancamentos"></div>
 
+<button onclick="gerarPDFDiario()">Relatório Diário Premium</button>
+<button onclick="gerarPDFMensal()">Relatório Mensal Premium</button>
 <button onclick="logoutGerente()">Sair</button>
 </div>
 
@@ -178,12 +180,9 @@ let vendas={};
 let semanaAtual={};
 let lancamentos=[];
 
-/* NOVO V13.5 */
 let correcaoManual=Number(localStorage.getItem("correcaoManual"))||0;
-
 let correcoesVendedores=
 JSON.parse(localStorage.getItem("correcoesVendedores")) || {};
-
 let correcoesSemana=
 JSON.parse(localStorage.getItem("correcoesSemana")) || {};
 
@@ -253,7 +252,6 @@ function corrigirTotalGeral(){
     }
 
     const totalAtual=Object.values(vendas).reduce((a,b)=>a+b,0);
-
     correcaoManual=valor-totalAtual;
 
     salvarCorrecoes();
@@ -322,7 +320,6 @@ async function carregarPlanilha(){
         });
     });
 
-    /* APLICA CORREÇÕES PERSISTENTES */
     Object.keys(correcoesVendedores).forEach(v=>{
         vendas[v]=correcoesVendedores[v];
     });
@@ -374,7 +371,6 @@ function renderLancamentos(){
 
 function atualizarDashboard(){
     let total=Object.values(vendas).reduce((a,b)=>a+b,0)+correcaoManual;
-
     let pct=percentual(total,META_LOJA);
 
     document.getElementById("dataHora").innerText=
@@ -437,6 +433,105 @@ function atualizarRanking(){
             <span>${medals[i]} ${r[0]}</span>
             <span>R$ ${formatar(r[1])}</span>
         </div>`).join("");
+}
+
+/* RELATÓRIOS PREMIUM */
+function desenharCabecalhoPDF(doc,titulo){
+    doc.setFillColor(24,0,0);
+    doc.rect(0,0,210,28,"F");
+
+    doc.setFont("helvetica","bold");
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(24);
+    doc.text("TAZZO",105,14,{align:"center"});
+
+    doc.setFontSize(11);
+    doc.text(titulo,105,22,{align:"center"});
+
+    doc.setDrawColor(180,0,0);
+    doc.line(15,32,195,32);
+}
+
+function desenharTabela(doc,inicioY,dados,colunas){
+    let y=inicioY;
+    let x=15;
+    const largura=60;
+
+    doc.setFillColor(139,0,0);
+    doc.setTextColor(255,255,255);
+
+    colunas.forEach(col=>{
+        doc.rect(x,y,largura,10,"F");
+        doc.text(col,x+30,y+6,{align:"center"});
+        x+=largura;
+    });
+
+    y+=10;
+    doc.setTextColor(0,0,0);
+
+    dados.forEach((linha,index)=>{
+        x=15;
+
+        doc.setFillColor(index%2===0 ? 245 : 230);
+
+        linha.forEach(item=>{
+            doc.rect(x,y,largura,10,"FD");
+            doc.text(String(item),x+30,y+6,{align:"center"});
+            x+=largura;
+        });
+
+        y+=10;
+    });
+
+    return y;
+}
+
+function gerarPDFDiario(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    desenharCabecalhoPDF(doc,"RELATÓRIO DIÁRIO");
+
+    let dados=lancamentos.slice(-10).reverse().map(item=>[
+        item.vendedor,
+        "R$ "+formatar(item.valor),
+        item.data
+    ]);
+
+    if(dados.length===0){
+        dados=[["Sem dados","R$ 0,00","-"]];
+    }
+
+    desenharTabela(doc,40,dados,["Vendedor","Valor","Data"]);
+
+    doc.save("relatorio-diario-tazzo.pdf");
+}
+
+function gerarPDFMensal(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    desenharCabecalhoPDF(doc,"RELATÓRIO MENSAL");
+
+    let dados=vendedores.map(nome=>[
+        nome,
+        "R$ "+formatar(vendas[nome]||0),
+        percentual(vendas[nome]||0,META_MENSAL)+"%"
+    ]);
+
+    const y=desenharTabela(doc,40,dados,["Vendedor","Total","Meta"]);
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica","bold");
+    doc.text(
+        "TOTAL GERAL: R$ "+formatar(
+            Object.values(vendas).reduce((a,b)=>a+b,0)+correcaoManual
+        ),
+        15,
+        y+15
+    );
+
+    doc.save("relatorio-mensal-tazzo.pdf");
 }
 
 verificarSessaoGerente();

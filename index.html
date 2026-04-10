@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO | Dashboard Premium V13.3</title>
+<title>TAZZO | Dashboard Premium V13.5</title>
+
 <link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -81,11 +83,15 @@ button{
 </style>
 </head>
 <body>
+
 <div class="container">
+
 <div class="logo">
 <span class="white">TA</span><span class="red">ZZ</span><span class="white">O</span>
 </div>
+
 <div id="dataHora" class="data-brasilia"></div>
+
 <div class="card">
 <h3>Meta Geral da Loja</h3>
 <div>Total: R$ <span id="totalLoja">0,00</span></div>
@@ -95,49 +101,70 @@ button{
 </div>
 <div id="metaInfo"></div>
 </div>
+
 <div class="card">
 <h3>Performance Mensal</h3>
 <div id="performanceMensal"></div>
 </div>
+
 <div class="card">
 <h3>Performance Semanal</h3>
 <div id="performanceSemanal"></div>
 </div>
+
 <div class="card">
 <h3>Ranking</h3>
 <div id="ranking"></div>
 </div>
+
+<button onclick="abrirLoginGerente()">Acesso Gerente</button>
+
 <div id="painelGerente" class="card">
 <h3>Painel do Gerente</h3>
+
 <select id="vendedor">
 <option>Joabe</option>
 <option>João Gabriel</option>
 <option>Fábio</option>
 <option>Caio Henrique</option>
 </select>
+
 <input type="text" id="valorVendaDia" placeholder="Valor vendido no dia">
+<button onclick="adicionarVendaDia()">Adicionar valor</button>
+
 <hr>
+
 <h3>Ajustes Manuais</h3>
+
 <input type="text" id="valorTotalCorrecao" placeholder="Novo total geral">
 <button onclick="corrigirTotalGeral()">Corrigir total geral</button>
+
 <select id="vendedorCorrecao">
 <option>Joabe</option>
 <option>João Gabriel</option>
 <option>Fábio</option>
 <option>Caio Henrique</option>
 </select>
+
 <input type="text" id="novoValorVendedor" placeholder="Novo valor acumulado">
+
 <select id="categoriaCorrecao">
 <option value="geral">Somente Geral</option>
 <option value="semana">Semana Atual</option>
 </select>
+
 <button onclick="corrigirValorVendedor()">
 Corrigir valor do vendedor
 </button>
+
 <h3>Últimos lançamentos</h3>
 <div id="listaLancamentos"></div>
+
+<button onclick="logoutGerente()">Sair</button>
 </div>
+
 </div>
+
 <script>
 const SENHA_GERENTE="gerentazzo";
 const API_URL="https://script.google.com/macros/s/AKfycbwKI2tgh4mqvRu-bkzH6Cmr0VpfyHMaFMDn9BtWMYFsOsigDMSp3Z-7veJO569mh78/exec";
@@ -150,7 +177,21 @@ const vendedores=["Joabe","João Gabriel","Fábio"];
 let vendas={};
 let semanaAtual={};
 let lancamentos=[];
-let correcaoManual=0;
+
+/* NOVO V13.5 */
+let correcaoManual=Number(localStorage.getItem("correcaoManual"))||0;
+
+let correcoesVendedores=
+JSON.parse(localStorage.getItem("correcoesVendedores")) || {};
+
+let correcoesSemana=
+JSON.parse(localStorage.getItem("correcoesSemana")) || {};
+
+function salvarCorrecoes(){
+    localStorage.setItem("correcaoManual",correcaoManual);
+    localStorage.setItem("correcoesVendedores",JSON.stringify(correcoesVendedores));
+    localStorage.setItem("correcoesSemana",JSON.stringify(correcoesSemana));
+}
 
 function abrirLoginGerente(){
     const senha=prompt("Digite a senha do gerente:");
@@ -189,6 +230,16 @@ function percentual(v,m){
     return ((v/m)*100).toFixed(1);
 }
 
+function inicioSemanaBrasilia(){
+    const hoje=agoraBrasilia();
+    const inicio=new Date(hoje);
+    const dia=hoje.getDay();
+    const diff=dia===0?6:dia-1;
+    inicio.setDate(hoje.getDate()-diff);
+    inicio.setHours(0,0,0,0);
+    return inicio;
+}
+
 function corrigirTotalGeral(){
     const valor=parseFloat(
         document.getElementById("valorTotalCorrecao").value
@@ -202,9 +253,13 @@ function corrigirTotalGeral(){
     }
 
     const totalAtual=Object.values(vendas).reduce((a,b)=>a+b,0);
+
     correcaoManual=valor-totalAtual;
 
+    salvarCorrecoes();
     atualizarDashboard();
+
+    alert("Total geral corrigido com sucesso.");
 }
 
 function corrigirValorVendedor(){
@@ -222,16 +277,18 @@ function corrigirValorVendedor(){
         return;
     }
 
-    const valorAtual=vendas[vendedor]||0;
-    const diferenca=novoValor-valorAtual;
-
-    vendas[vendedor]=novoValor;
-
-    if(categoria==="semana" && semanaAtual[vendedor]!==undefined){
-        semanaAtual[vendedor]+=diferenca;
+    if(categoria==="geral"){
+        correcoesVendedores[vendedor]=novoValor;
     }
 
+    if(categoria==="semana"){
+        correcoesSemana[vendedor]=novoValor;
+    }
+
+    salvarCorrecoes();
     atualizarDashboard();
+
+    alert("Correção salva com sucesso.");
 }
 
 async function carregarPlanilha(){
@@ -265,18 +322,17 @@ async function carregarPlanilha(){
         });
     });
 
+    /* APLICA CORREÇÕES PERSISTENTES */
+    Object.keys(correcoesVendedores).forEach(v=>{
+        vendas[v]=correcoesVendedores[v];
+    });
+
+    Object.keys(correcoesSemana).forEach(v=>{
+        semanaAtual[v]=correcoesSemana[v];
+    });
+
     atualizarDashboard();
     renderLancamentos();
-}
-
-function inicioSemanaBrasilia(){
-    const hoje=agoraBrasilia();
-    const inicio=new Date(hoje);
-    const dia=hoje.getDay();
-    const diff=dia===0?6:dia-1;
-    inicio.setDate(hoje.getDate()-diff);
-    inicio.setHours(0,0,0,0);
-    return inicio;
 }
 
 async function adicionarVendaDia(){
@@ -327,6 +383,7 @@ function atualizarDashboard(){
     document.getElementById("totalLoja").innerText=formatar(total);
     document.getElementById("percentLoja").innerText=pct+"%";
     document.getElementById("barraLoja").style.width=Math.min(pct,100)+"%";
+
     document.getElementById("metaInfo").innerHTML=
         `Faltam R$ ${formatar(Math.max(0,META_LOJA-total))}`;
 
@@ -382,22 +439,10 @@ function atualizarRanking(){
         </div>`).join("");
 }
 
-function gerarPDFDiario(){ alert("Relatório premium mantido"); }
-function gerarPDFMensal(){ alert("Relatório premium mantido"); }
-
 verificarSessaoGerente();
 setInterval(carregarPlanilha,10000);
 carregarPlanilha();
 </script>
+
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-

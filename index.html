@@ -3,11 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO | Dashboard Premium V13.2</title>
-
+<title>TAZZO | Dashboard Premium V13.3</title>
 <link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -83,15 +81,11 @@ button{
 </style>
 </head>
 <body>
-
 <div class="container">
-
 <div class="logo">
 <span class="white">TA</span><span class="red">ZZ</span><span class="white">O</span>
 </div>
-
 <div id="dataHora" class="data-brasilia"></div>
-
 <div class="card">
 <h3>Meta Geral da Loja</h3>
 <div>Total: R$ <span id="totalLoja">0,00</span></div>
@@ -101,48 +95,49 @@ button{
 </div>
 <div id="metaInfo"></div>
 </div>
-
 <div class="card">
 <h3>Performance Mensal</h3>
 <div id="performanceMensal"></div>
 </div>
-
 <div class="card">
 <h3>Performance Semanal</h3>
 <div id="performanceSemanal"></div>
 </div>
-
 <div class="card">
 <h3>Ranking</h3>
 <div id="ranking"></div>
 </div>
-
-<button onclick="abrirLoginGerente()">Acesso Gerente</button>
-
 <div id="painelGerente" class="card">
 <h3>Painel do Gerente</h3>
-
 <select id="vendedor">
 <option>Joabe</option>
 <option>João Gabriel</option>
 <option>Fábio</option>
 <option>Caio Henrique</option>
 </select>
-
 <input type="text" id="valorVendaDia" placeholder="Valor vendido no dia">
-
-<button onclick="adicionarVendaDia()">Adicionar valor</button>
-
+<hr>
+<h3>Ajustes Manuais</h3>
+<input type="text" id="valorTotalCorrecao" placeholder="Novo total geral">
+<button onclick="corrigirTotalGeral()">Corrigir total geral</button>
+<select id="vendedorCorrecao">
+<option>Joabe</option>
+<option>João Gabriel</option>
+<option>Fábio</option>
+<option>Caio Henrique</option>
+</select>
+<input type="text" id="novoValorVendedor" placeholder="Novo valor acumulado">
+<select id="categoriaCorrecao">
+<option value="geral">Somente Geral</option>
+<option value="semana">Semana Atual</option>
+</select>
+<button onclick="corrigirValorVendedor()">
+Corrigir valor do vendedor
+</button>
 <h3>Últimos lançamentos</h3>
 <div id="listaLancamentos"></div>
-
-<button onclick="gerarPDFDiario()">Relatório Diário</button>
-<button onclick="gerarPDFMensal()">Relatório Mensal</button>
-<button onclick="logoutGerente()">Sair</button>
 </div>
-
 </div>
-
 <script>
 const SENHA_GERENTE="gerentazzo";
 const API_URL="https://script.google.com/macros/s/AKfycbwKI2tgh4mqvRu-bkzH6Cmr0VpfyHMaFMDn9BtWMYFsOsigDMSp3Z-7veJO569mh78/exec";
@@ -155,6 +150,7 @@ const vendedores=["Joabe","João Gabriel","Fábio"];
 let vendas={};
 let semanaAtual={};
 let lancamentos=[];
+let correcaoManual=0;
 
 function abrirLoginGerente(){
     const senha=prompt("Digite a senha do gerente:");
@@ -193,14 +189,49 @@ function percentual(v,m){
     return ((v/m)*100).toFixed(1);
 }
 
-function inicioSemanaBrasilia(){
-    const hoje=agoraBrasilia();
-    const inicio=new Date(hoje);
-    const dia=hoje.getDay();
-    const diff=dia===0?6:dia-1;
-    inicio.setDate(hoje.getDate()-diff);
-    inicio.setHours(0,0,0,0);
-    return inicio;
+function corrigirTotalGeral(){
+    const valor=parseFloat(
+        document.getElementById("valorTotalCorrecao").value
+        .replace(/\./g,"")
+        .replace(",",".")
+    );
+
+    if(isNaN(valor)||valor<0){
+        alert("Digite valor válido");
+        return;
+    }
+
+    const totalAtual=Object.values(vendas).reduce((a,b)=>a+b,0);
+    correcaoManual=valor-totalAtual;
+
+    atualizarDashboard();
+}
+
+function corrigirValorVendedor(){
+    const vendedor=document.getElementById("vendedorCorrecao").value;
+    const categoria=document.getElementById("categoriaCorrecao").value;
+
+    const novoValor=parseFloat(
+        document.getElementById("novoValorVendedor").value
+        .replace(/\./g,"")
+        .replace(",",".")
+    );
+
+    if(isNaN(novoValor)||novoValor<0){
+        alert("Digite valor válido");
+        return;
+    }
+
+    const valorAtual=vendas[vendedor]||0;
+    const diferenca=novoValor-valorAtual;
+
+    vendas[vendedor]=novoValor;
+
+    if(categoria==="semana" && semanaAtual[vendedor]!==undefined){
+        semanaAtual[vendedor]+=diferenca;
+    }
+
+    atualizarDashboard();
 }
 
 async function carregarPlanilha(){
@@ -222,10 +253,8 @@ async function carregarPlanilha(){
 
         const dataVenda=new Date(dataRegistro);
 
-        if(vendedores.includes(vendedor) && !isNaN(dataVenda)){
-            if(dataVenda>=inicioSemana){
-                semanaAtual[vendedor]+=valor;
-            }
+        if(vendedores.includes(vendedor) && dataVenda>=inicioSemana){
+            semanaAtual[vendedor]+=valor;
         }
 
         lancamentos.push({
@@ -238,55 +267,47 @@ async function carregarPlanilha(){
 
     atualizarDashboard();
     renderLancamentos();
-    verificarMetaBatida();
+}
+
+function inicioSemanaBrasilia(){
+    const hoje=agoraBrasilia();
+    const inicio=new Date(hoje);
+    const dia=hoje.getDay();
+    const diff=dia===0?6:dia-1;
+    inicio.setDate(hoje.getDate()-diff);
+    inicio.setHours(0,0,0,0);
+    return inicio;
 }
 
 async function adicionarVendaDia(){
-    let nome = document.getElementById("vendedor").value;
-
-    let valorTexto = document.getElementById("valorVendaDia").value.trim();
-
-    let valor = parseFloat(
-        valorTexto
-            .replace(/\./g,"")
-            .replace(",",".")
+    let nome=document.getElementById("vendedor").value;
+    let valor=parseFloat(
+        document.getElementById("valorVendaDia").value
+        .replace(/\./g,"")
+        .replace(",",".")
     );
 
-    if(isNaN(valor) || valor <= 0){
-        alert("Digite um valor válido.");
+    if(isNaN(valor)||valor<=0){
+        alert("Digite valor válido");
         return;
     }
 
-    try{
-        const response = await fetch(API_URL,{
-            method:"POST",
-            body: JSON.stringify({
-                action:"add",
-                vendedor:nome,
-                valor:valor
-            })
-        });
+    await fetch(API_URL,{
+        method:"POST",
+        body:JSON.stringify({
+            action:"add",
+            vendedor:nome,
+            valor:valor
+        })
+    });
 
-        const resultado = await response.json();
-
-        if(resultado.status === "ok"){
-            document.getElementById("valorVendaDia").value = "";
-            await carregarPlanilha();
-            alert("Venda adicionada com sucesso.");
-        }else{
-            alert("Erro ao adicionar venda.");
-        }
-
-    }catch(error){
-        console.error(error);
-        alert("Erro de conexão com a planilha.");
-    }
+    document.getElementById("valorVendaDia").value="";
+    carregarPlanilha();
 }
 
 function renderLancamentos(){
-    const lista=document.getElementById("listaLancamentos");
-
-    lista.innerHTML=lancamentos.slice(-7).reverse().map(item=>`
+    document.getElementById("listaLancamentos").innerHTML=
+        lancamentos.slice(-7).reverse().map(item=>`
         <div class="lancamento-item">
             ${item.vendedor} — R$ ${formatar(item.valor)}
             <br>
@@ -295,17 +316,8 @@ function renderLancamentos(){
     `).join("");
 }
 
-function verificarMetaBatida(){
-    const total=(vendas["Fábio"]||0)+(vendas["Joabe"]||0)+(vendas["João Gabriel"]||0)+(vendas["Caio Henrique"]||0);
-
-    if(total>=META_LOJA && !localStorage.getItem("metaBatida")){
-        alert("🎉 Meta geral da loja batida!");
-        localStorage.setItem("metaBatida","true");
-    }
-}
-
 function atualizarDashboard(){
-    let total=(vendas["Fábio"]||0)+(vendas["Joabe"]||0)+(vendas["João Gabriel"]||0)+(vendas["Caio Henrique"]||0);
+    let total=Object.values(vendas).reduce((a,b)=>a+b,0)+correcaoManual;
 
     let pct=percentual(total,META_LOJA);
 
@@ -377,6 +389,15 @@ verificarSessaoGerente();
 setInterval(carregarPlanilha,10000);
 carregarPlanilha();
 </script>
-
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+

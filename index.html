@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO | Dashboard Premium V13.7</title>
+<title>TAZZO | Dashboard Premium V13.7.1</title>
 
 <link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-
 body{
     min-height:100vh;
     background:linear-gradient(135deg,#180000,#8b0000,#1a0000);
@@ -20,19 +19,16 @@ body{
     color:#fff;
     font-family:Arial,sans-serif;
 }
-
 @keyframes bgMove{
     0%{background-position:0% 50%}
     50%{background-position:100% 50%}
     100%{background-position:0% 50%}
 }
-
 .container{max-width:480px;margin:auto}
 .logo{text-align:center;font-size:42px;margin-bottom:18px}
 .logo span{font-family:'Bring Race',sans-serif !important}
 .white{color:#fff}
 .red{color:#ff0000;text-shadow:0 0 8px #ff0000}
-
 .card{
     background:rgba(255,255,255,.08);
     border-radius:20px;
@@ -41,7 +37,6 @@ body{
     box-shadow:0 0 20px rgba(255,0,0,.18);
     backdrop-filter:blur(12px);
 }
-
 button,input,select{
     width:100%;
     padding:14px;
@@ -50,19 +45,16 @@ button,input,select{
     border-radius:12px;
     font-size:16px;
 }
-
 input,select{
     background:rgba(0,0,0,.35);
     color:#fff;
 }
-
 button{
     background:linear-gradient(90deg,#ff0000,#8b0000);
     color:#fff;
     font-weight:bold;
     cursor:pointer;
 }
-
 .progress-container{
     width:100%;
     height:14px;
@@ -71,18 +63,15 @@ button{
     overflow:hidden;
     margin:8px 0;
 }
-
 .progress-bar{
     height:100%;
     background:linear-gradient(90deg,#ff0000,#ff5c5c);
 }
-
 .rank-item{
     display:flex;
     justify-content:space-between;
     padding:8px 0;
 }
-
 #painelGerente{display:none}
 </style>
 </head>
@@ -124,25 +113,6 @@ button{
 <div id="painelGerente" class="card">
 <h3>Painel do Gerente</h3>
 
-<h4>Lançar Venda Diária</h4>
-<select id="vendedorVenda">
-<option>Joabe</option>
-<option>João Gabriel</option>
-<option>Fábio</option>
-<option>Caio Henrique</option>
-</select>
-
-<input type="text" id="valorVendaDia" placeholder="Valor vendido no dia">
-<button onclick="adicionarVendaDia()">Adicionar valor</button>
-
-<hr>
-
-<h4>Correção Meta Geral</h4>
-<input type="text" id="novoTotalLoja" placeholder="Novo total geral da loja">
-<button onclick="corrigirMetaLoja()">Salvar Total Geral</button>
-
-<hr>
-
 <select id="vendedorCorrecao">
 <option>Joabe</option>
 <option>João Gabriel</option>
@@ -153,63 +123,59 @@ button{
 <input type="text" id="novoValorVendedor" placeholder="Novo valor">
 
 <select id="categoriaCorrecao">
-<option value="geral">Mensal</option>
-<option value="semana">Semanal</option>
+<option value="mensal">Mensal</option>
+<option value="semanal">Semanal</option>
 </select>
 
 <button onclick="corrigirValorVendedor()">Salvar Correção</button>
-
-<button onclick="gerarPDFDiario()">Relatório Diário</button>
-<button onclick="gerarPDFMensal()">Relatório Mensal</button>
 <button onclick="logoutGerente()">Sair</button>
 </div>
 
 </div>
 
 <script>
-const SENHA_GERENTE = "gerentazzo";
-const API_URL = "https://script.google.com/macros/s/AKfycbwKI2tgh4mqvRu-bkzH6Cmr0VpfyHMaFMDn9BtWMYFsOsigDMSp3Z-7veJO569mh78/exec";
+const SENHA_GERENTE="gerentazzo";
+const API_URL="https://script.google.com/macros/s/AKfycbwKI2tgh4mqvRu-bkzH6Cmr0VpfyHMaFMDn9BtWMYFsOsigDMSp3Z-7veJO569mh78/exec";
 
-const META_LOJA = 210000;
-const META_MENSAL = 70000;
-const META_SEMANAL = 17500;
+const META_LOJA=210000;
+const META_MENSAL=70000;
+const META_SEMANAL=17500;
 
-const vendedores = [
+const vendedores=[
     "Joabe",
     "João Gabriel",
     "Fábio",
     "Caio Henrique"
 ];
 
-let vendas = {};
-let semanaAtual = {};
-let totalLojaManual = null;
+let vendas={};
+let semanaAtual={};
 
-function inicializarDados(){
-    vendedores.forEach(nome=>{
-        vendas[nome]=0;
-        semanaAtual[nome]=0;
-    });
+let correcoes=JSON.parse(localStorage.getItem("correcoes")) || {
+    mensal:{},
+    semanal:{}
+};
+
+function salvarCorrecoes(){
+    localStorage.setItem("correcoes",JSON.stringify(correcoes));
 }
 
 function abrirLoginGerente(){
-    const senha = prompt("Digite a senha:");
-    if(senha === SENHA_GERENTE){
+    const senha=prompt("Digite a senha:");
+    if(senha===SENHA_GERENTE){
         localStorage.setItem("gerenteLogado","true");
-        document.getElementById("painelGerente").style.display = "block";
-    }else{
-        alert("Senha incorreta");
+        document.getElementById("painelGerente").style.display="block";
     }
 }
 
 function logoutGerente(){
     localStorage.removeItem("gerenteLogado");
-    document.getElementById("painelGerente").style.display = "none";
+    document.getElementById("painelGerente").style.display="none";
 }
 
 function verificarSessao(){
     if(localStorage.getItem("gerenteLogado")==="true"){
-        document.getElementById("painelGerente").style.display = "block";
+        document.getElementById("painelGerente").style.display="block";
     }
 }
 
@@ -225,185 +191,142 @@ function percentual(v,m){
 }
 
 function inicioSemana(){
-    const hoje = new Date();
-    const dia = hoje.getDay();
-    const diff = dia === 0 ? 6 : dia - 1;
-    const inicio = new Date(hoje);
-    inicio.setDate(hoje.getDate() - diff);
+    const hoje=new Date();
+    const dia=hoje.getDay();
+    const diff=dia===0?6:dia-1;
+    const inicio=new Date(hoje);
+    inicio.setDate(hoje.getDate()-diff);
     inicio.setHours(0,0,0,0);
     return inicio;
 }
 
 async function carregarDadosTempoReal(){
-    try{
-        const response = await fetch(API_URL + "?t=" + Date.now());
-        const dados = await response.json();
+    const response=await fetch(API_URL+"?t="+Date.now());
+    const dados=await response.json();
 
-        inicializarDados();
+    vendas={};
+    semanaAtual={};
 
-        const inicio = inicioSemana();
-
-        dados.slice(1).forEach(linha=>{
-            const vendedor = linha[0];
-            const valor = parseFloat(String(linha[1]).replace(",", ".")) || 0;
-            const dataVenda = new Date(linha[2]);
-
-            if(vendas[vendedor] !== undefined){
-                vendas[vendedor] += valor;
-
-                if(!isNaN(dataVenda) && dataVenda >= inicio){
-                    semanaAtual[vendedor] += valor;
-                }
-            }
-        });
-
-        atualizarDashboard();
-
-    }catch(erro){
-        console.log("Erro:", erro);
-    }
-}
-
-async function adicionarVendaDia(){
-    const vendedor = document.getElementById("vendedorVenda").value;
-
-    const valor = parseFloat(
-        document.getElementById("valorVendaDia").value
-        .replace(/\./g,"")
-        .replace(",",".")
-    );
-
-    if(isNaN(valor) || valor <= 0){
-        alert("Valor inválido");
-        return;
-    }
-
-    await fetch(API_URL,{
-        method:"POST",
-        body:JSON.stringify({
-            action:"venda",
-            vendedor:vendedor,
-            valor:valor
-        })
+    vendedores.forEach(v=>{
+        vendas[v]=0;
+        semanaAtual[v]=0;
     });
 
-    document.getElementById("valorVendaDia").value="";
-    carregarDadosTempoReal();
+    const inicio=inicioSemana();
 
-    alert("Venda adicionada com sucesso");
+    dados.slice(1).forEach(linha=>{
+        const vendedor=linha[0];
+        const valor=parseFloat(String(linha[1]).replace(",", "."))||0;
+        const dataVenda=new Date(linha[2]);
+
+        if(vendas[vendedor]!==undefined){
+            vendas[vendedor]+=valor;
+
+            if(!isNaN(dataVenda) && dataVenda>=inicio){
+                semanaAtual[vendedor]+=valor;
+            }
+        }
+    });
+
+    aplicarCorrecoes();
+    atualizarDashboard();
 }
 
-function corrigirMetaLoja(){
-    const valor = parseFloat(
-        document.getElementById("novoTotalLoja").value
-        .replace(/\./g,"")
-        .replace(",",".")
-    );
+function aplicarCorrecoes(){
+    vendedores.forEach(nome=>{
+        if(correcoes.mensal[nome]!==undefined){
+            vendas[nome]=correcoes.mensal[nome];
+        }
 
-    if(isNaN(valor) || valor < 0){
-        alert("Valor inválido");
-        return;
-    }
-
-    totalLojaManual = valor;
-    atualizarDashboard();
-    alert("Meta geral corrigida");
+        if(correcoes.semanal[nome]!==undefined){
+            semanaAtual[nome]=correcoes.semanal[nome];
+        }
+    });
 }
 
 function corrigirValorVendedor(){
-    const vendedor = document.getElementById("vendedorCorrecao").value;
-    const categoria = document.getElementById("categoriaCorrecao").value;
+    const vendedor=document.getElementById("vendedorCorrecao").value;
+    const categoria=document.getElementById("categoriaCorrecao").value;
 
-    const valor = parseFloat(
+    const valor=parseFloat(
         document.getElementById("novoValorVendedor").value
         .replace(/\./g,"")
         .replace(",",".")
     );
 
-    if(isNaN(valor) || valor < 0){
+    if(isNaN(valor) || valor<0){
         alert("Valor inválido");
         return;
     }
 
-    if(categoria==="geral"){
-        vendas[vendedor]=valor;
+    if(categoria==="mensal"){
+        correcoes.mensal[vendedor]=valor;
     }else{
-        semanaAtual[vendedor]=valor;
+        correcoes.semanal[vendedor]=valor;
     }
 
+    salvarCorrecoes();
+    aplicarCorrecoes();
     atualizarDashboard();
-    alert("Correção salva com sucesso");
+
+    alert("Correção aplicada com sucesso");
 }
 
 function atualizarDashboard(){
-    let total = 0;
-    let mensalHTML = "";
-    let semanalHTML = "";
+    let total=0;
+    let mensalHTML="";
+    let semanalHTML="";
 
     vendedores.forEach(nome=>{
-        let mensal = vendas[nome] || 0;
-        let semanal = semanaAtual[nome] || 0;
+        const mensal=vendas[nome]||0;
+        const semanal=semanaAtual[nome]||0;
 
-        total += mensal;
+        total+=mensal;
 
-        let pctMensal = percentual(mensal,META_MENSAL);
-        let pctSemanal = percentual(semanal,META_SEMANAL);
+        const pctMensal=percentual(mensal,META_MENSAL);
+        const pctSemanal=percentual(semanal,META_SEMANAL);
 
-        mensalHTML += `
+        mensalHTML+=`
         <div>${nome}: R$ ${formatar(mensal)} (${pctMensal}%)</div>
         <div class="progress-container">
             <div class="progress-bar" style="width:${Math.min(Number(pctMensal),100)}%"></div>
         </div>`;
 
-        semanalHTML += `
+        semanalHTML+=`
         <div>${nome}: R$ ${formatar(semanal)} (${pctSemanal}%)</div>
         <div class="progress-container">
             <div class="progress-bar" style="width:${Math.min(Number(pctSemanal),100)}%"></div>
         </div>`;
     });
 
-    let totalFinal = totalLojaManual ?? total;
-    let pctLoja = percentual(totalFinal,META_LOJA);
+    const pctLoja=percentual(total,META_LOJA);
 
-    document.getElementById("totalLoja").innerText = formatar(totalFinal);
-    document.getElementById("percentLoja").innerText = pctLoja + "%";
-    document.getElementById("barraLoja").style.width = Math.min(Number(pctLoja),100)+"%";
-    document.getElementById("metaInfo").innerHTML =
-        `Faltam R$ ${formatar(Math.max(0,META_LOJA-totalFinal))}`;
+    document.getElementById("totalLoja").innerText=formatar(total);
+    document.getElementById("percentLoja").innerText=pctLoja+"%";
+    document.getElementById("barraLoja").style.width=Math.min(Number(pctLoja),100)+"%";
 
-    document.getElementById("performanceMensal").innerHTML = mensalHTML;
-    document.getElementById("performanceSemanal").innerHTML = semanalHTML;
+    document.getElementById("metaInfo").innerHTML=
+        `Faltam R$ ${formatar(Math.max(0,META_LOJA-total))}`;
+
+    document.getElementById("performanceMensal").innerHTML=mensalHTML;
+    document.getElementById("performanceSemanal").innerHTML=semanalHTML;
 
     atualizarRanking();
 }
 
 function atualizarRanking(){
-    let ranking = vendedores.map(nome=>[
+    let ranking=vendedores.map(nome=>[
         nome,
-        vendas[nome] || 0
+        vendas[nome]||0
     ]).sort((a,b)=>b[1]-a[1]);
 
-    document.getElementById("ranking").innerHTML =
+    document.getElementById("ranking").innerHTML=
         ranking.map((r,i)=>`
         <div class="rank-item">
             <span>${i+1}º ${r[0]}</span>
             <span>R$ ${formatar(r[1])}</span>
         </div>
         `).join("");
-}
-
-function gerarPDFDiario(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.text("Relatório Diário TAZZO",20,20);
-    doc.save("relatorio_diario.pdf");
-}
-
-function gerarPDFMensal(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.text("Relatório Mensal TAZZO",20,20);
-    doc.save("relatorio_mensal.pdf");
 }
 
 verificarSessao();

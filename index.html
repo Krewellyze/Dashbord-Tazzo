@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO | Dashboard Premium V13.5</title>
+<title>TAZZO | Dashboard Premium V13.6</title>
 
 <link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
+
 body{
     min-height:100vh;
     background:linear-gradient(135deg,#180000,#8b0000,#1a0000);
@@ -19,17 +20,19 @@ body{
     color:#fff;
     font-family:Arial,sans-serif;
 }
+
 @keyframes bgMove{
     0%{background-position:0% 50%}
     50%{background-position:100% 50%}
     100%{background-position:0% 50%}
 }
+
 .container{max-width:480px;margin:auto}
 .logo{text-align:center;font-size:42px;margin-bottom:18px}
 .logo span{font-family:'Bring Race',sans-serif !important}
 .white{color:#fff}
 .red{color:#ff0000;text-shadow:0 0 8px #ff0000}
-.data-brasilia{text-align:center;font-size:13px;color:#ddd;margin-bottom:16px}
+
 .card{
     background:rgba(255,255,255,.08);
     border-radius:20px;
@@ -38,6 +41,7 @@ body{
     box-shadow:0 0 20px rgba(255,0,0,.18);
     backdrop-filter:blur(12px);
 }
+
 button,input,select{
     width:100%;
     padding:14px;
@@ -46,16 +50,19 @@ button,input,select{
     border-radius:12px;
     font-size:16px;
 }
+
 input,select{
     background:rgba(0,0,0,.35);
     color:#fff;
 }
+
 button{
     background:linear-gradient(90deg,#ff0000,#8b0000);
     color:#fff;
     font-weight:bold;
     cursor:pointer;
 }
+
 .progress-container{
     width:100%;
     height:14px;
@@ -64,21 +71,18 @@ button{
     overflow:hidden;
     margin:8px 0;
 }
+
 .progress-bar{
     height:100%;
     background:linear-gradient(90deg,#ff0000,#ff5c5c);
 }
+
 .rank-item{
     display:flex;
     justify-content:space-between;
     padding:8px 0;
 }
-.lancamento-item{
-    padding:10px;
-    margin:8px 0;
-    background:rgba(255,255,255,.05);
-    border-radius:10px;
-}
+
 #painelGerente{display:none}
 </style>
 </head>
@@ -90,7 +94,7 @@ button{
 <span class="white">TA</span><span class="red">ZZ</span><span class="white">O</span>
 </div>
 
-<div id="dataHora" class="data-brasilia"></div>
+<div id="dataHora"></div>
 
 <div class="card">
 <h3>Meta Geral da Loja</h3>
@@ -122,23 +126,6 @@ button{
 <div id="painelGerente" class="card">
 <h3>Painel do Gerente</h3>
 
-<select id="vendedor">
-<option>Joabe</option>
-<option>João Gabriel</option>
-<option>Fábio</option>
-<option>Caio Henrique</option>
-</select>
-
-<input type="text" id="valorVendaDia" placeholder="Valor vendido no dia">
-<button onclick="adicionarVendaDia()">Adicionar valor</button>
-
-<hr>
-
-<h3>Ajustes Manuais</h3>
-
-<input type="text" id="valorTotalCorrecao" placeholder="Novo total geral">
-<button onclick="corrigirTotalGeral()">Corrigir total geral</button>
-
 <select id="vendedorCorrecao">
 <option>Joabe</option>
 <option>João Gabriel</option>
@@ -146,22 +133,19 @@ button{
 <option>Caio Henrique</option>
 </select>
 
-<input type="text" id="novoValorVendedor" placeholder="Novo valor acumulado">
+<input type="text" id="novoValorVendedor" placeholder="Novo valor">
 
 <select id="categoriaCorrecao">
-<option value="geral">Somente Geral</option>
-<option value="semana">Semana Atual</option>
+<option value="geral">Mensal</option>
+<option value="semana">Semanal</option>
 </select>
 
 <button onclick="corrigirValorVendedor()">
-Corrigir valor do vendedor
+Salvar Correção
 </button>
 
-<h3>Últimos lançamentos</h3>
-<div id="listaLancamentos"></div>
-
-<button onclick="gerarPDFDiario()">Relatório Diário Premium</button>
-<button onclick="gerarPDFMensal()">Relatório Mensal Premium</button>
+<button onclick="gerarPDFDiario()">Relatório Diário</button>
+<button onclick="gerarPDFMensal()">Relatório Mensal</button>
 <button onclick="logoutGerente()">Sair</button>
 </div>
 
@@ -169,35 +153,39 @@ Corrigir valor do vendedor
 
 <script>
 const SENHA_GERENTE="gerentazzo";
-const API_URL="COLE_AQUI_SEU_LINK_GOOGLE_SCRIPT";
 
 const META_LOJA=210000;
 const META_MENSAL=70000;
 const META_SEMANAL=17500;
-const vendedores=["Joabe","João Gabriel","Fábio"];
 
-let vendas={};
-let semanaAtual={};
-let lancamentos=[];
-let correcaoManual=0;
+const vendedores=["Joabe","João Gabriel","Fábio","Caio Henrique"];
+
+let vendas={
+    "Joabe":16114.43,
+    "João Gabriel":11231.53,
+    "Fábio":15809.44,
+    "Caio Henrique":2566.35
+};
+
+let semanaAtual={
+    "Joabe":0,
+    "João Gabriel":0,
+    "Fábio":0,
+    "Caio Henrique":0
+};
+
+let correcoes=JSON.parse(localStorage.getItem("correcoes"))||{
+    mensal:{},
+    semanal:{}
+};
 
 function abrirLoginGerente(){
-    const senha=prompt("Digite a senha do gerente:");
+    const senha=prompt("Digite a senha:");
     if(senha===SENHA_GERENTE){
         localStorage.setItem("gerenteLogado","true");
-        mostrarPainelGerente();
+        document.getElementById("painelGerente").style.display="block";
     }else{
         alert("Senha incorreta");
-    }
-}
-
-function mostrarPainelGerente(){
-    document.getElementById("painelGerente").style.display="block";
-}
-
-function verificarSessaoGerente(){
-    if(localStorage.getItem("gerenteLogado")==="true"){
-        mostrarPainelGerente();
     }
 }
 
@@ -206,12 +194,40 @@ function logoutGerente(){
     document.getElementById("painelGerente").style.display="none";
 }
 
-function agoraBrasilia(){
-    return new Date(
-        new Date().toLocaleString("en-US",{
-            timeZone:"America/Sao_Paulo"
-        })
+function verificarSessao(){
+    if(localStorage.getItem("gerenteLogado")==="true"){
+        document.getElementById("painelGerente").style.display="block";
+    }
+}
+
+function salvarCorrecoes(){
+    localStorage.setItem("correcoes",JSON.stringify(correcoes));
+}
+
+function corrigirValorVendedor(){
+    const vendedor=document.getElementById("vendedorCorrecao").value;
+    const valor=parseFloat(
+        document.getElementById("novoValorVendedor").value
+        .replace(/\./g,"")
+        .replace(",",".")
     );
+    const categoria=document.getElementById("categoriaCorrecao").value;
+
+    if(isNaN(valor)||valor<0){
+        alert("Valor inválido");
+        return;
+    }
+
+    if(categoria==="geral"){
+        correcoes.mensal[vendedor]=valor;
+    }else{
+        correcoes.semanal[vendedor]=valor;
+    }
+
+    salvarCorrecoes();
+    atualizarDashboard();
+
+    alert("Correção salva com sucesso");
 }
 
 function formatar(v){
@@ -225,216 +241,83 @@ function percentual(v,m){
     return ((v/m)*100).toFixed(1);
 }
 
-function inicioSemanaBrasilia(){
-    const hoje=agoraBrasilia();
-    const inicio=new Date(hoje);
-    const dia=hoje.getDay();
-    const diff=dia===0?6:dia-1;
-    inicio.setDate(hoje.getDate()-diff);
-    inicio.setHours(0,0,0,0);
-    return inicio;
-}
+function atualizarDashboard(){
 
-async function carregarPlanilha(){
-    const response=await fetch(API_URL);
-    const dados=await response.json();
+    let total=0;
 
-    vendas={
-        "Fábio":0,
-        "Joabe":0,
-        "João Gabriel":0,
-        "Caio Henrique":0
-    };
+    let mensalHTML="";
+    let semanalHTML="";
 
-    semanaAtual={
-        "Joabe":0,
-        "João Gabriel":0,
-        "Fábio":0,
-        "Caio Henrique":0
-    };
+    vendedores.forEach(nome=>{
 
-    lancamentos=[];
+        let mensal=correcoes.mensal[nome] ?? vendas[nome];
+        let semanal=correcoes.semanal[nome] ?? semanaAtual[nome];
 
-    const inicioSemana=inicioSemanaBrasilia();
+        total+=mensal;
 
-    dados.slice(1).forEach((linha,index)=>{
-        const vendedor=linha[0];
-        const valor=parseFloat(
-            String(linha[1]).replace(",", ".")
-        )||0;
+        let pctMensal=percentual(mensal,META_MENSAL);
+        let pctSemanal=percentual(semanal,META_SEMANAL);
 
-        const dataRegistro=linha[2];
+        mensalHTML+=`
+        <div>${nome}: R$ ${formatar(mensal)} (${pctMensal}%)</div>
+        <div class="progress-container">
+        <div class="progress-bar" style="width:${Math.min(pctMensal,100)}%"></div>
+        </div>`;
 
-        vendas[vendedor]=(vendas[vendedor]||0)+valor;
-
-        const dataVenda=new Date(dataRegistro);
-
-        if(vendedores.includes(vendedor) && !isNaN(dataVenda)){
-            if(dataVenda>=inicioSemana){
-                semanaAtual[vendedor]+=valor;
-            }
-        }
-
-        lancamentos.push({
-            row:index+2,
-            vendedor,
-            valor,
-            data:dataRegistro
-        });
+        semanalHTML+=`
+        <div>${nome}: R$ ${formatar(semanal)} (${pctSemanal}%)</div>
+        <div class="progress-container">
+        <div class="progress-bar" style="width:${Math.min(pctSemanal,100)}%"></div>
+        </div>`;
     });
 
-    atualizarDashboard();
-    renderLancamentos();
-}
+    let pctLoja=percentual(total,META_LOJA);
 
-async function corrigirValorVendedor(){
-    const vendedor=
-        document.getElementById("vendedorCorrecao").value;
-
-    const categoria=
-        document.getElementById("categoriaCorrecao").value;
-
-    const novoValor=parseFloat(
-        document.getElementById("novoValorVendedor").value
-            .replace(/\./g,"")
-            .replace(",",".")
-    );
-
-    if(isNaN(novoValor)||novoValor<0){
-        alert("Digite valor válido");
-        return;
-    }
-
-    try{
-        const response=await fetch(API_URL,{
-            method:"POST",
-            body:JSON.stringify({
-                action:"corrigir",
-                vendedor:vendedor,
-                categoria:categoria,
-                valor:novoValor
-            })
-        });
-
-        const resultado=await response.json();
-
-        if(resultado.status==="ok"){
-            await carregarPlanilha();
-            alert("Correção salva com sucesso.");
-        }else{
-            alert("Erro ao salvar correção.");
-        }
-
-    }catch(erro){
-        alert("Erro de conexão.");
-    }
-}
-
-function renderLancamentos(){
-    const lista=document.getElementById("listaLancamentos");
-
-    lista.innerHTML=lancamentos
-        .slice(-7)
-        .reverse()
-        .map(item=>`
-        <div class="lancamento-item">
-            ${item.vendedor} — R$ ${formatar(item.valor)}
-            <br>
-            <small>${item.data}</small>
-        </div>
-    `).join("");
-}
-
-function atualizarDashboard(){
-    let total=Object.values(vendas)
-        .reduce((a,b)=>a+b,0)+correcaoManual;
-
-    let pct=percentual(total,META_LOJA);
-
-    document.getElementById("dataHora").innerText=
-        agoraBrasilia().toLocaleString("pt-BR")+
-        " • Brasília";
-
-    document.getElementById("totalLoja").innerText=
-        formatar(total);
-
-    document.getElementById("percentLoja").innerText=
-        pct+"%";
-
-    document.getElementById("barraLoja").style.width=
-        Math.min(pct,100)+"%";
+    document.getElementById("totalLoja").innerText=formatar(total);
+    document.getElementById("percentLoja").innerText=pctLoja+"%";
+    document.getElementById("barraLoja").style.width=Math.min(pctLoja,100)+"%";
 
     document.getElementById("metaInfo").innerHTML=
-        `Faltam R$ ${formatar(
-            Math.max(0,META_LOJA-total)
-        )}`;
+        `Faltam R$ ${formatar(Math.max(0,META_LOJA-total))}`;
 
-    atualizarMensal();
-    atualizarSemanal();
+    document.getElementById("performanceMensal").innerHTML=mensalHTML;
+    document.getElementById("performanceSemanal").innerHTML=semanalHTML;
+
     atualizarRanking();
 }
 
-function atualizarMensal(){
-    let html="";
-
-    vendedores.forEach(nome=>{
-        let valor=vendas[nome]||0;
-        let pct=percentual(valor,META_MENSAL);
-
-        html+=`
-        <div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
-        <div class="progress-container">
-            <div class="progress-bar"
-            style="width:${Math.min(pct,100)}%">
-            </div>
-        </div>`;
-    });
-
-    document.getElementById(
-        "performanceMensal"
-    ).innerHTML=html;
-}
-
-function atualizarSemanal(){
-    let html="";
-
-    vendedores.forEach(nome=>{
-        let valor=semanaAtual[nome]||0;
-        let pct=percentual(valor,META_SEMANAL);
-
-        html+=`
-        <div>${nome}: R$ ${formatar(valor)} (${pct}%)</div>
-        <div class="progress-container">
-            <div class="progress-bar"
-            style="width:${Math.min(pct,100)}%">
-            </div>
-        </div>`;
-    });
-
-    document.getElementById(
-        "performanceSemanal"
-    ).innerHTML=html;
-}
-
 function atualizarRanking(){
-    let ranking=vendedores
-        .map(v=>[v,vendas[v]||0])
-        .sort((a,b)=>b[1]-a[1]);
-
-    let medals=["🥇","🥈","🥉"];
+    let ranking=vendedores.map(nome=>{
+        let valor=correcoes.mensal[nome] ?? vendas[nome];
+        return [nome,valor];
+    }).sort((a,b)=>b[1]-a[1]);
 
     document.getElementById("ranking").innerHTML=
         ranking.map((r,i)=>`
         <div class="rank-item">
-            <span>${medals[i]} ${r[0]}</span>
-            <span>R$ ${formatar(r[1])}</span>
+        <span>${i+1}º ${r[0]}</span>
+        <span>R$ ${formatar(r[1])}</span>
         </div>
-    `).join("");
+        `).join("");
 }
 
-verificarSessaoGerente();
-setInterval(carregarPlanilha,2000);
-carregarPlanilha();
+function gerarPDFDiario(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text("Relatório Diário TAZZO",20,20);
+    doc.save("relatorio_diario.pdf");
+}
+
+function gerarPDFMensal(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text("Relatório Mensal TAZZO",20,20);
+    doc.save("relatorio_mensal.pdf");
+}
+
+verificarSessao();
+atualizarDashboard();
 </script>
+
 </body>
 </html>

@@ -126,6 +126,12 @@ button{
 <div id="painelGerente" class="card">
 <h3>Painel do Gerente</h3>
 
+<h4>Correção Meta Geral</h4>
+<input type="text" id="novoTotalLoja" placeholder="Novo total geral da loja">
+<button onclick="corrigirMetaLoja()">Salvar Total Geral</button>
+
+<hr>
+
 <select id="vendedorCorrecao">
 <option>Joabe</option>
 <option>João Gabriel</option>
@@ -176,7 +182,8 @@ let semanaAtual={
 
 let correcoes=JSON.parse(localStorage.getItem("correcoes"))||{
     mensal:{},
-    semanal:{}
+    semanal:{},
+    totalLoja:null
 };
 
 function abrirLoginGerente(){
@@ -202,6 +209,26 @@ function verificarSessao(){
 
 function salvarCorrecoes(){
     localStorage.setItem("correcoes",JSON.stringify(correcoes));
+}
+
+function corrigirMetaLoja(){
+    const valor=parseFloat(
+        document.getElementById("novoTotalLoja").value
+        .replace(/\./g,"")
+        .replace(",",".")
+    );
+
+    if(isNaN(valor)||valor<0){
+        alert("Valor inválido");
+        return;
+    }
+
+    correcoes.totalLoja=valor;
+
+    salvarCorrecoes();
+    atualizarDashboard();
+
+    alert("Meta geral corrigida com sucesso");
 }
 
 function corrigirValorVendedor(){
@@ -243,7 +270,7 @@ function percentual(v,m){
 
 function atualizarDashboard(){
 
-    let total=0;
+    let totalCalculado=0;
 
     let mensalHTML="";
     let semanalHTML="";
@@ -253,7 +280,7 @@ function atualizarDashboard(){
         let mensal=correcoes.mensal[nome] ?? vendas[nome];
         let semanal=correcoes.semanal[nome] ?? semanaAtual[nome];
 
-        total+=mensal;
+        totalCalculado+=mensal;
 
         let pctMensal=percentual(mensal,META_MENSAL);
         let pctSemanal=percentual(semanal,META_SEMANAL);
@@ -271,14 +298,16 @@ function atualizarDashboard(){
         </div>`;
     });
 
-    let pctLoja=percentual(total,META_LOJA);
+    let totalFinal=correcoes.totalLoja ?? totalCalculado;
 
-    document.getElementById("totalLoja").innerText=formatar(total);
+    let pctLoja=percentual(totalFinal,META_LOJA);
+
+    document.getElementById("totalLoja").innerText=formatar(totalFinal);
     document.getElementById("percentLoja").innerText=pctLoja+"%";
     document.getElementById("barraLoja").style.width=Math.min(pctLoja,100)+"%";
 
     document.getElementById("metaInfo").innerHTML=
-        `Faltam R$ ${formatar(Math.max(0,META_LOJA-total))}`;
+        `Faltam R$ ${formatar(Math.max(0,META_LOJA-totalFinal))}`;
 
     document.getElementById("performanceMensal").innerHTML=mensalHTML;
     document.getElementById("performanceSemanal").innerHTML=semanalHTML;

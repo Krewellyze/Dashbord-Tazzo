@@ -66,6 +66,7 @@ button{
 .progress-bar{
     height:100%;
     background:linear-gradient(90deg,#ff0000,#ff5c5c);
+    transition:width .4s ease;
 }
 .rank-item{
     display:flex;
@@ -185,7 +186,7 @@ function formatar(v){
 }
 
 function percentual(v,m){
-    return ((v/m)*100).toFixed(1);
+    return Number(((v/m)*100).toFixed(1));
 }
 
 async function carregarDados(){
@@ -215,8 +216,8 @@ function atualizarDashboard(){
 
         total+=mensal;
 
-        const pctMensal=percentual(mensal,META_MENSAL);
-        const pctSemanal=percentual(semanal,META_SEMANAL);
+        const pctMensal=Number(percentual(mensal,META_MENSAL));
+        const pctSemanal=Number(percentual(semanal,META_SEMANAL));
 
         mensalHTML+=`
         <div>${nome}: R$ ${formatar(mensal)} (${pctMensal}%)</div>
@@ -232,7 +233,7 @@ function atualizarDashboard(){
     });
 
     const totalLoja=dados.metaLoja ?? total;
-    const pctLoja=percentual(totalLoja,META_LOJA);
+    const pctLoja=Number(percentual(totalLoja,META_LOJA));
 
     document.getElementById("totalLoja").innerText=formatar(totalLoja);
     document.getElementById("percentLoja").innerText=pctLoja+"%";

@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO | Dashboard Premium V13.7.2 REALTIME</title>
+<title>TAZZO | Dashboard Premium V13.7.2 FINAL</title>
 
 <link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
+
 body{
     min-height:100vh;
     background:linear-gradient(135deg,#180000,#8b0000,#1a0000);
@@ -19,11 +20,13 @@ body{
     color:#fff;
     font-family:Arial,sans-serif;
 }
+
 @keyframes bgMove{
     0%{background-position:0% 50%}
     50%{background-position:100% 50%}
     100%{background-position:0% 50%}
 }
+
 .container{max-width:480px;margin:auto}
 .logo{text-align:center;font-size:42px;margin-bottom:18px}
 .logo span{font-family:'Bring Race',sans-serif !important}
@@ -83,7 +86,6 @@ button{
 #painelGerente{display:none}
 </style>
 </head>
-
 <body>
 
 <div class="container">
@@ -120,10 +122,9 @@ button{
 <button onclick="abrirLoginGerente()">Acesso Gerente</button>
 
 <div id="painelGerente" class="card">
-
 <h3>Painel do Gerente</h3>
 
-<h4>Lançar Venda</h4>
+<h4>Lançar Venda Diária</h4>
 <select id="vendedorVenda">
 <option>Joabe</option>
 <option>João Gabriel</option>
@@ -131,12 +132,17 @@ button{
 <option>Caio Henrique</option>
 </select>
 
-<input type="text" id="valorVendaDia" placeholder="Valor">
-<button onclick="adicionarVenda()">Adicionar</button>
+<input type="text" id="valorVendaDia" placeholder="Valor vendido no dia">
+<button onclick="adicionarVendaDia()">Adicionar valor</button>
 
 <hr>
 
-<h4>Correção</h4>
+<h4>Correção Meta Geral</h4>
+<input type="text" id="novoTotalLoja" placeholder="Novo total geral da loja">
+<button onclick="corrigirMetaLoja()">Salvar Total Geral</button>
+
+<hr>
+
 <select id="vendedorCorrecao">
 <option>Joabe</option>
 <option>João Gabriel</option>
@@ -145,158 +151,233 @@ button{
 </select>
 
 <input type="text" id="novoValorVendedor" placeholder="Novo valor">
-<button onclick="corrigir()">Salvar</button>
 
+<select id="categoriaCorrecao">
+<option value="geral">Mensal</option>
+<option value="semana">Semanal</option>
+</select>
+
+<button onclick="corrigirValorVendedor()">Salvar Correção</button>
+
+<button onclick="gerarPDFDiario()">Relatório Diário Premium</button>
+<button onclick="gerarPDFMensal()">Relatório Mensal Premium</button>
 <button onclick="logoutGerente()">Sair</button>
-
 </div>
 
 </div>
 
 <script>
-
-const API_URL="https://script.google.com/macros/s/AKfycbwKI2tgh4mqvRu-bkzH6Cmr0VpfyHMaFMDn9BtWMYFsOsigDMSp3Z-7veJO569mh78/exec";
-
+const SENHA_GERENTE="gerentazzo";
 const META_LOJA=210000;
 const META_MENSAL=70000;
 const META_SEMANAL=17500;
 
 const vendedores=["Joabe","João Gabriel","Fábio","Caio Henrique"];
 
-let vendas={};
-let semanaAtual={};
+let vendas=JSON.parse(localStorage.getItem("vendas"))||{
+    "Joabe":16114.43,
+    "João Gabriel":11231.53,
+    "Fábio":15809.44,
+    "Caio Henrique":2566.35
+};
+
+let semanaAtual=JSON.parse(localStorage.getItem("semanaAtual"))||{
+    "Joabe":0,
+    "João Gabriel":0,
+    "Fábio":0,
+    "Caio Henrique":0
+};
+
+let correcoes=JSON.parse(localStorage.getItem("correcoes"))||{
+    mensal:{},
+    semanal:{},
+    totalLoja:null
+};
+
+function salvarTudo(){
+    localStorage.setItem("vendas",JSON.stringify(vendas));
+    localStorage.setItem("semanaAtual",JSON.stringify(semanaAtual));
+    localStorage.setItem("correcoes",JSON.stringify(correcoes));
+}
+
+window.addEventListener("storage",()=>{
+    vendas=JSON.parse(localStorage.getItem("vendas"))||vendas;
+    semanaAtual=JSON.parse(localStorage.getItem("semanaAtual"))||semanaAtual;
+    correcoes=JSON.parse(localStorage.getItem("correcoes"))||correcoes;
+    atualizarDashboard();
+});
 
 function abrirLoginGerente(){
-    if(prompt("Senha:")==="gerentazzo"){
+    const senha=prompt("Digite a senha:");
+    if(senha===SENHA_GERENTE){
+        localStorage.setItem("gerenteLogado","true");
         document.getElementById("painelGerente").style.display="block";
+    }else{
+        alert("Senha incorreta");
     }
 }
 
 function logoutGerente(){
+    localStorage.removeItem("gerenteLogado");
     document.getElementById("painelGerente").style.display="none";
 }
 
+function verificarSessao(){
+    if(localStorage.getItem("gerenteLogado")==="true"){
+        document.getElementById("painelGerente").style.display="block";
+    }
+}
+
+function adicionarVendaDia(){
+    const vendedor=document.getElementById("vendedorVenda").value;
+    const valor=parseFloat(
+        document.getElementById("valorVendaDia").value
+        .replace(/\./g,"")
+        .replace(",",".")
+    );
+
+    if(isNaN(valor)||valor<=0){
+        alert("Valor inválido");
+        return;
+    }
+
+    vendas[vendedor]+=valor;
+    semanaAtual[vendedor]+=valor;
+
+    salvarTudo();
+    atualizarDashboard();
+
+    document.getElementById("valorVendaDia").value="";
+    alert("Venda adicionada com sucesso");
+}
+
+function corrigirMetaLoja(){
+    const valor=parseFloat(
+        document.getElementById("novoTotalLoja").value
+        .replace(/\./g,"")
+        .replace(",",".")
+    );
+
+    correcoes.totalLoja=valor;
+
+    salvarTudo();
+    atualizarDashboard();
+
+    alert("Meta geral corrigida");
+}
+
+function corrigirValorVendedor(){
+    const vendedor=document.getElementById("vendedorCorrecao").value;
+    const valor=parseFloat(
+        document.getElementById("novoValorVendedor").value
+        .replace(/\./g,"")
+        .replace(",",".")
+    );
+
+    const categoria=document.getElementById("categoriaCorrecao").value;
+
+    if(isNaN(valor)||valor<0){
+        alert("Valor inválido");
+        return;
+    }
+
+    if(categoria==="geral"){
+        correcoes.mensal[vendedor]=valor;
+    }else{
+        correcoes.semanal[vendedor]=valor;
+    }
+
+    salvarTudo();
+    atualizarDashboard();
+
+    alert("Correção salva");
+}
+
 function formatar(v){
-    return Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2});
+    return Number(v).toLocaleString("pt-BR",{
+        minimumFractionDigits:2,
+        maximumFractionDigits:2
+    });
 }
 
 function percentual(v,m){
     return ((v/m)*100).toFixed(1);
 }
 
-// 🔥 BUSCA REAL DO GOOGLE SHEETS
-async function carregar(){
-    const res=await fetch(API_URL);
-    const dados=await res.json();
-
-    vendas={};
-    semanaAtual={};
-
-    vendedores.forEach(v=>{
-        vendas[v]=0;
-        semanaAtual[v]=0;
-    });
-
-    dados.slice(1).forEach(l=>{
-        const vendedor=l[0];
-        const valor=parseFloat(l[1])||0;
-
-        if(vendas[vendedor]!=undefined){
-            vendas[vendedor]+=valor;
-            semanaAtual[vendedor]+=valor;
-        }
-    });
-
-    atualizar();
-}
-
-// 🔥 ENVIA PRO GS (PERSISTE DE VERDADE)
-async function adicionarVenda(){
-    const vendedor=document.getElementById("vendedorVenda").value;
-    const valor=parseFloat(document.getElementById("valorVendaDia").value.replace(",","."));
-
-    await fetch(API_URL,{
-        method:"POST",
-        body:JSON.stringify({
-            vendedor:vendedor,
-            valor:valor
-        })
-    });
-
-    document.getElementById("valorVendaDia").value="";
-    carregar();
-}
-
-async function corrigir(){
-    const vendedor=document.getElementById("vendedorCorrecao").value;
-    const valor=parseFloat(document.getElementById("novoValorVendedor").value.replace(",","."));
-
-    await fetch(API_URL,{
-        method:"POST",
-        body:JSON.stringify({
-            action:"corrigir",
-            vendedor:vendedor,
-            valor:valor
-        })
-    });
-
-    carregar();
-}
-
-// UI
-function atualizar(){
-
+function atualizarDashboard(){
     let total=0;
-    let htmlMensal="";
-    let htmlSemanal="";
+    let mensalHTML="";
+    let semanalHTML="";
 
-    vendedores.forEach(v=>{
-        let val=vendas[v]||0;
-        total+=val;
+    vendedores.forEach(nome=>{
+        let mensal=correcoes.mensal[nome] ?? vendas[nome];
+        let semanal=correcoes.semanal[nome] ?? semanaAtual[nome];
 
-        let pct=percentual(val,META_MENSAL);
+        total+=mensal;
 
-        htmlMensal+=`
-        <div>${v}: R$ ${formatar(val)} (${pct}%)</div>
+        let pctMensal=percentual(mensal,META_MENSAL);
+        let pctSemanal=percentual(semanal,META_SEMANAL);
+
+        mensalHTML+=`
+        <div>${nome}: R$ ${formatar(mensal)} (${pctMensal}%)</div>
         <div class="progress-container">
-        <div class="progress-bar" style="width:${pct}%"></div>
+            <div class="progress-bar" style="width:${Math.min(Number(pctMensal),100)}%"></div>
         </div>`;
 
-        htmlSemanal+=`
-        <div>${v}: R$ ${formatar(val)} (${pct}%)</div>
+        semanalHTML+=`
+        <div>${nome}: R$ ${formatar(semanal)} (${pctSemanal}%)</div>
         <div class="progress-container">
-        <div class="progress-bar" style="width:${pct}%"></div>
+            <div class="progress-bar" style="width:${Math.min(Number(pctSemanal),100)}%"></div>
         </div>`;
     });
 
-    let pctLoja=percentual(total,META_LOJA);
+    let totalFinal=correcoes.totalLoja ?? total;
+    let pctLoja=percentual(totalFinal,META_LOJA);
 
-    document.getElementById("totalLoja").innerText=formatar(total);
+    document.getElementById("totalLoja").innerText=formatar(totalFinal);
     document.getElementById("percentLoja").innerText=pctLoja+"%";
-    document.getElementById("barraLoja").style.width=pctLoja+"%";
+    document.getElementById("barraLoja").style.width=Math.min(Number(pctLoja),100)+"%";
+    document.getElementById("metaInfo").innerHTML=
+        `Faltam R$ ${formatar(Math.max(0,META_LOJA-totalFinal))}`;
 
-    document.getElementById("performanceMensal").innerHTML=htmlMensal;
-    document.getElementById("performanceSemanal").innerHTML=htmlSemanal;
+    document.getElementById("performanceMensal").innerHTML=mensalHTML;
+    document.getElementById("performanceSemanal").innerHTML=semanalHTML;
 
     atualizarRanking();
 }
 
 function atualizarRanking(){
-    let ranking=Object.entries(vendas)
-        .sort((a,b)=>b[1]-a[1]);
+    let ranking=vendedores.map(nome=>{
+        let valor=correcoes.mensal[nome] ?? vendas[nome];
+        return [nome,valor];
+    }).sort((a,b)=>b[1]-a[1]);
 
     document.getElementById("ranking").innerHTML=
         ranking.map((r,i)=>`
         <div class="rank-item">
-        <span>${i+1}º ${r[0]}</span>
-        <span>R$ ${formatar(r[1])}</span>
-        </div>`).join("");
+            <span>${i+1}º ${r[0]}</span>
+            <span>R$ ${formatar(r[1])}</span>
+        </div>
+        `).join("");
 }
 
-// 🔥 TEMPO REAL GLOBAL
-setInterval(carregar,5000);
-carregar();
+function gerarPDFDiario(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text("Relatório Diário Premium",20,20);
+    doc.save("relatorio_diario_tazzo.pdf");
+}
 
+function gerarPDFMensal(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text("Relatório Mensal Premium",20,20);
+    doc.save("relatorio_mensal_tazzo.pdf");
+}
+
+verificarSessao();
+atualizarDashboard();
+setInterval(atualizarDashboard,3000);
 </script>
 
 </body>

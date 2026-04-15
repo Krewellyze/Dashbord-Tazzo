@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TAZZO | Dashboard Premium V13.8 FINAL</title>
+<title>TAZZO | Dashboard Premium V13.8 FINAL REALTIME</title>
 
 <link href="https://fonts.cdnfonts.com/css/bring-race" rel="stylesheet">
 
@@ -130,12 +130,13 @@ button{
 <option>Fábio</option>
 <option>Caio Henrique</option>
 </select>
+
 <input type="text" id="valorVendaDia" placeholder="Valor vendido no dia">
 <button onclick="adicionarVendaDia()">Adicionar valor</button>
 
 <hr style="margin:15px 0">
 
-<h4>Correção Real de Valores</h4>
+<h4>Correção de Valores</h4>
 <select id="vendedorCorrecao">
 <option>Joabe</option>
 <option>João Gabriel</option>
@@ -143,7 +144,7 @@ button{
 <option>Caio Henrique</option>
 </select>
 
-<input type="text" id="novoValorVendedor" placeholder="Novo valor correto">
+<input type="text" id="novoValorVendedor" placeholder="Novo valor">
 
 <select id="categoriaCorrecao">
 <option value="mensal">Mensal</option>
@@ -154,7 +155,7 @@ button{
 
 <hr style="margin:15px 0">
 
-<h4>Correção Valor Geral da Loja</h4>
+<h4>Correção Valor Geral</h4>
 <input type="text" id="valorGeralManual" placeholder="Novo total geral">
 <button onclick="corrigirValorGeral()">Salvar Total Geral</button>
 
@@ -186,9 +187,17 @@ function percentual(v,m){
 }
 
 async function carregarDados(){
-    const response=await fetch(API_URL+"?t="+Date.now());
-    dados=await response.json();
-    atualizarDashboard();
+    try{
+        const response=await fetch(API_URL+"?t="+Date.now());
+        const resultado=await response.json();
+
+        dados=resultado.vendedores || [];
+        totalManual=resultado.totalGeral;
+
+        atualizarDashboard();
+    }catch(e){
+        console.error("Erro ao carregar dados",e);
+    }
 }
 
 function abrirLoginGerente(){
@@ -206,6 +215,7 @@ function logoutGerente(){
 
 async function adicionarVendaDia(){
     const vendedor=document.getElementById("vendedorVenda").value;
+
     const valor=parseFloat(
         document.getElementById("valorVendaDia").value
         .replace(/\./g,"")
@@ -233,6 +243,7 @@ async function adicionarVendaDia(){
     });
 
     document.getElementById("valorVendaDia").value="";
+
     await carregarDados();
 
     alert("Venda adicionada com sucesso");
@@ -275,12 +286,13 @@ async function corrigirValorVendedor(){
     });
 
     document.getElementById("novoValorVendedor").value="";
+
     await carregarDados();
 
     alert("Correção aplicada");
 }
 
-function corrigirValorGeral(){
+async function corrigirValorGeral(){
     const valor=parseFloat(
         document.getElementById("valorGeralManual").value
         .replace(/\./g,"")
@@ -292,10 +304,19 @@ function corrigirValorGeral(){
         return;
     }
 
-    totalManual=valor;
-    atualizarDashboard();
+    await fetch(API_URL,{
+        method:"POST",
+        body:JSON.stringify({
+            action:"totalGeral",
+            valor
+        })
+    });
 
-    alert("Total geral corrigido");
+    document.getElementById("valorGeralManual").value="";
+
+    await carregarDados();
+
+    alert("Total geral salvo");
 }
 
 function atualizarDashboard(){
@@ -314,13 +335,13 @@ function atualizarDashboard(){
         mensalHTML+=`
         <div>${item.vendedor}: R$ ${formatar(item.mensal)} (${pctMensal}%)</div>
         <div class="progress-container">
-            <div class="progress-bar" style="width:${Math.min(pctMensal,100)}%"></div>
+            <div class="progress-bar" style="width:${Math.min(Number(pctMensal),100)}%"></div>
         </div>`;
 
         semanalHTML+=`
         <div>${item.vendedor}: R$ ${formatar(item.semanal)} (${pctSemanal}%)</div>
         <div class="progress-container">
-            <div class="progress-bar" style="width:${Math.min(pctSemanal,100)}%"></div>
+            <div class="progress-bar" style="width:${Math.min(Number(pctSemanal),100)}%"></div>
         </div>`;
     });
 
@@ -329,7 +350,8 @@ function atualizarDashboard(){
 
     document.getElementById("totalLoja").innerText=formatar(totalFinal);
     document.getElementById("percentLoja").innerText=pctLoja+"%";
-    document.getElementById("barraLoja").style.width=Math.min(pctLoja,100)+"%";
+    document.getElementById("barraLoja").style.width=Math.min(Number(pctLoja),100)+"%";
+
     document.getElementById("metaInfo").innerHTML=
         `Faltam R$ ${formatar(Math.max(0,META_LOJA-totalFinal))}`;
 

@@ -73,7 +73,8 @@ button{
 
 .progress-bar{
     height:100%;
-    background:linear-gradient(90deg,#ff0000,#ff5c5c);
+    width:0%;
+    transition:width 0.8s ease, background 0.5s ease;
 }
 
 .rank-item{
@@ -126,7 +127,7 @@ button{
 <h4>Lançar Venda do Dia</h4>
 <select id="vendedorVenda">
 <option>Joabe</option>
-<option>João Gabriel</option>
+<option>João Vitor</option>
 <option>Fábio</option>
 <option>Caio Henrique</option>
 </select>
@@ -139,7 +140,7 @@ button{
 <h4>Correção de Valores</h4>
 <select id="vendedorCorrecao">
 <option>Joabe</option>
-<option>João Gabriel</option>
+<option>João Vitor</option>
 <option>Fábio</option>
 <option>Caio Henrique</option>
 </select>
@@ -176,36 +177,33 @@ let dados=[];
 let totalManual=null;
 
 function formatar(v){
-    return Number(v).toLocaleString("pt-BR",{
-        minimumFractionDigits:2,
-        maximumFractionDigits:2
-    });
+    return Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2});
 }
 
 function percentual(v,m){
-    return ((v/m)*100).toFixed(1);
+    return ((v/m)*100);
+}
+
+function corBarra(pct){
+    if(pct <= 35) return "#ff0000";
+    if(pct <= 75) return "#ffd000";
+    return "#00ff88";
 }
 
 async function carregarDados(){
-    try{
-        const response=await fetch(API_URL+"?t="+Date.now());
-        const resultado=await response.json();
+    const response=await fetch(API_URL+"?t="+Date.now());
+    const resultado=await response.json();
 
-        dados=resultado.vendedores || [];
-        totalManual=resultado.totalGeral;
+    dados=resultado.vendedores || [];
+    totalManual=resultado.totalGeral;
 
-        atualizarDashboard();
-    }catch(e){
-        console.error("Erro ao carregar dados",e);
-    }
+    atualizarDashboard();
 }
 
 function abrirLoginGerente(){
     const senha=prompt("Digite a senha:");
     if(senha===SENHA_GERENTE){
         document.getElementById("painelGerente").style.display="block";
-    }else{
-        alert("Senha incorreta");
     }
 }
 
@@ -217,36 +215,23 @@ async function adicionarVendaDia(){
     const vendedor=document.getElementById("vendedorVenda").value;
 
     const valor=parseFloat(
-        document.getElementById("valorVendaDia").value
-        .replace(/\./g,"")
-        .replace(",",".")
+        document.getElementById("valorVendaDia").value.replace(/\./g,"").replace(",",".")
     );
 
-    if(isNaN(valor)||valor<=0){
-        alert("Valor inválido");
-        return;
-    }
-
     const atual=dados.find(d=>d.vendedor===vendedor);
-
-    const mensal=(atual?.mensal||0)+valor;
-    const semanal=(atual?.semanal||0)+valor;
 
     await fetch(API_URL,{
         method:"POST",
         body:JSON.stringify({
             action:"editar",
             vendedor,
-            mensal,
-            semanal
+            mensal:(atual?.mensal||0)+valor,
+            semanal:(atual?.semanal||0)+valor
         })
     });
 
     document.getElementById("valorVendaDia").value="";
-
-    await carregarDados();
-
-    alert("Venda adicionada com sucesso");
+    carregarDados();
 }
 
 async function corrigirValorVendedor(){
@@ -254,69 +239,37 @@ async function corrigirValorVendedor(){
     const categoria=document.getElementById("categoriaCorrecao").value;
 
     const valor=parseFloat(
-        document.getElementById("novoValorVendedor").value
-        .replace(/\./g,"")
-        .replace(",",".")
+        document.getElementById("novoValorVendedor").value.replace(/\./g,"").replace(",",".")
     );
 
-    if(isNaN(valor)){
-        alert("Valor inválido");
-        return;
-    }
-
     const atual=dados.find(d=>d.vendedor===vendedor);
-
-    let mensal=atual?.mensal||0;
-    let semanal=atual?.semanal||0;
-
-    if(categoria==="mensal"){
-        mensal=valor;
-    }else{
-        semanal=valor;
-    }
 
     await fetch(API_URL,{
         method:"POST",
         body:JSON.stringify({
             action:"editar",
             vendedor,
-            mensal,
-            semanal
+            mensal: categoria==="mensal" ? valor : atual.mensal,
+            semanal: categoria==="semanal" ? valor : atual.semanal
         })
     });
 
     document.getElementById("novoValorVendedor").value="";
-
-    await carregarDados();
-
-    alert("Correção aplicada");
+    carregarDados();
 }
 
 async function corrigirValorGeral(){
     const valor=parseFloat(
-        document.getElementById("valorGeralManual").value
-        .replace(/\./g,"")
-        .replace(",",".")
+        document.getElementById("valorGeralManual").value.replace(/\./g,"").replace(",",".")
     );
-
-    if(isNaN(valor)){
-        alert("Valor inválido");
-        return;
-    }
 
     await fetch(API_URL,{
         method:"POST",
-        body:JSON.stringify({
-            action:"totalGeral",
-            valor
-        })
+        body:JSON.stringify({action:"totalGeral",valor})
     });
 
     document.getElementById("valorGeralManual").value="";
-
-    await carregarDados();
-
-    alert("Total geral salvo");
+    carregarDados();
 }
 
 function atualizarDashboard(){
@@ -333,15 +286,15 @@ function atualizarDashboard(){
         const pctSemanal=percentual(item.semanal,META_SEMANAL);
 
         mensalHTML+=`
-        <div>${item.vendedor}: R$ ${formatar(item.mensal)} (${pctMensal}%)</div>
+        <div>${item.vendedor}: R$ ${formatar(item.mensal)} (${pctMensal.toFixed(1)}%)</div>
         <div class="progress-container">
-            <div class="progress-bar" style="width:${Math.min(Number(pctMensal),100)}%"></div>
+            <div class="progress-bar" style="width:${Math.min(pctMensal,100)}%; background:${corBarra(pctMensal)}"></div>
         </div>`;
 
         semanalHTML+=`
-        <div>${item.vendedor}: R$ ${formatar(item.semanal)} (${pctSemanal}%)</div>
+        <div>${item.vendedor}: R$ ${formatar(item.semanal)} (${pctSemanal.toFixed(1)}%)</div>
         <div class="progress-container">
-            <div class="progress-bar" style="width:${Math.min(Number(pctSemanal),100)}%"></div>
+            <div class="progress-bar" style="width:${Math.min(pctSemanal,100)}%; background:${corBarra(pctSemanal)}"></div>
         </div>`;
     });
 
@@ -349,8 +302,11 @@ function atualizarDashboard(){
     const pctLoja=percentual(totalFinal,META_LOJA);
 
     document.getElementById("totalLoja").innerText=formatar(totalFinal);
-    document.getElementById("percentLoja").innerText=pctLoja+"%";
-    document.getElementById("barraLoja").style.width=Math.min(Number(pctLoja),100)+"%";
+    document.getElementById("percentLoja").innerText=pctLoja.toFixed(1)+"%";
+
+    const barra=document.getElementById("barraLoja");
+    barra.style.width=Math.min(pctLoja,100)+"%";
+    barra.style.background=corBarra(pctLoja);
 
     document.getElementById("metaInfo").innerHTML=
         `Faltam R$ ${formatar(Math.max(0,META_LOJA-totalFinal))}`;
